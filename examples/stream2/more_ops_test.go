@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"iter"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_stream2_iter_and_basicOps() {

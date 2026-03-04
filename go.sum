@@ -1,7 +1,7 @@
+github.com/coldsmirk/go-collections v0.3.2 h1:lhYX1Kv7+MPxhr+4iF7sxNxqoC+EfaKIXYaolE97l6M=
+github.com/coldsmirk/go-collections v0.3.2/go.mod h1:ZH1rkpy9R/EQSW4sk5iR5Hs1wNYbXfifFcsj5FYWUpo=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ilxqx/go-collections v0.3.1 h1:Lv9uzBKnT0Gyp5rs3xDcA/geJXH+T3e2315XSeGE/Yc=
-github.com/ilxqx/go-collections v0.3.1/go.mod h1:BRzi8UgTTq0W8ZzupttjsNA2VxaHu49PVEOhpqG9QRA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/puzpuzpuz/xsync/v3 v3.5.1 h1:GJYJZwO6IdxN/IKbneznS6yPkVC+c3zyY/j19c++5Fg=

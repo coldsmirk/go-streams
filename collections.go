@@ -3,7 +3,7 @@ package streams
 import (
 	"iter"
 
-	collections "github.com/ilxqx/go-collections"
+	collections "github.com/coldsmirk/go-collections"
 )
 
 // =============================================================================

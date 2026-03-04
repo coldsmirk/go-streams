@@ -3,7 +3,7 @@ package optional_examples
 import (
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_optional_more() {

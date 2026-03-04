@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/ilxqx/go-collections"
-	"github.com/ilxqx/go-streams"
+	"github.com/coldsmirk/go-collections"
+	"github.com/coldsmirk/go-streams"
 )
 
 func Example_fromSet() {

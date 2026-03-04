@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // Example_forEachCtxWithError demonstrates ForEachCtx with error handling.

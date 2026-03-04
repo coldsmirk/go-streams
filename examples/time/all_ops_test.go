@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // The examples below demonstrate usage patterns and compile,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_stream2_terminals() {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // Example_forEachErr demonstrates using ForEachErr for operations that may fail.

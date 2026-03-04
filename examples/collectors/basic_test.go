@@ -3,7 +3,7 @@ package collectors_examples
 import (
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // Example: TopK convenience backed by collectors.

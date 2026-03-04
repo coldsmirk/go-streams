@@ -3,7 +3,7 @@ package join_examples
 import (
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // Example: InnerJoin only keeps matching keys.

@@ -3,7 +3,7 @@ package streams_examples
 import (
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_stream_skip_step_dropWhile() {

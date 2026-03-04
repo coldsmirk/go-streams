@@ -3,7 +3,7 @@ package parallel_examples
 import (
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // Example: parallel map with default ordered output.

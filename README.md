@@ -1,9 +1,9 @@
 # go-streams
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/ilxqx/go-streams.svg)](https://pkg.go.dev/github.com/ilxqx/go-streams)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ilxqx/go-streams)](https://goreportcard.com/report/github.com/ilxqx/go-streams)
-[![Build Status](https://github.com/ilxqx/go-streams/actions/workflows/test.yml/badge.svg)](https://github.com/ilxqx/go-streams/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/ilxqx/go-streams/branch/main/graph/badge.svg)](https://codecov.io/gh/ilxqx/go-streams)
+[![Go Reference](https://pkg.go.dev/badge/github.com/coldsmirk/go-streams.svg)](https://pkg.go.dev/github.com/coldsmirk/go-streams)
+[![Go Report Card](https://goreportcard.com/badge/github.com/coldsmirk/go-streams)](https://goreportcard.com/report/github.com/coldsmirk/go-streams)
+[![Build Status](https://github.com/coldsmirk/go-streams/actions/workflows/test.yml/badge.svg)](https://github.com/coldsmirk/go-streams/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/coldsmirk/go-streams/branch/main/graph/badge.svg)](https://codecov.io/gh/coldsmirk/go-streams)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lazy, type-safe stream processing library for Go 1.25+, built on `iter.Seq` and `iter.Seq2`.
@@ -82,7 +82,7 @@ A lazy, type-safe stream processing library for Go 1.25+, built on `iter.Seq` an
 ## Installation
 
 ```bash
-go get github.com/ilxqx/go-streams
+go get github.com/coldsmirk/go-streams
 ```
 
 ## Quick Start
@@ -92,7 +92,7 @@ package main
 
 import (
     "fmt"
-    "github.com/ilxqx/go-streams"
+    "github.com/coldsmirk/go-streams"
 )
 
 func main() {
@@ -1732,7 +1732,7 @@ xs, ys := streams.Unzip(streams.Of(streams.NewPair(1,"a"), streams.NewPair(2,"b"
 
 ### go-collections Integration
 
-go-streams provides seamless integration with [go-collections](https://github.com/ilxqx/go-collections), a comprehensive collections library offering Set, List, Map, Queue, Stack, and more.
+go-streams provides seamless integration with [go-collections](https://github.com/coldsmirk/go-collections), a comprehensive collections library offering Set, List, Map, Queue, Stack, and more.
 
 #### Constructors from go-collections
 

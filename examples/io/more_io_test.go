@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_scanner_and_readerErr() {

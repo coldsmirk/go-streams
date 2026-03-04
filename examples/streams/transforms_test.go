@@ -5,7 +5,7 @@ import (
 	"iter"
 	"strings"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_mapTo_flatMap_zip() {

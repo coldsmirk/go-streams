@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // Example: MapErrTo and CollectResults.

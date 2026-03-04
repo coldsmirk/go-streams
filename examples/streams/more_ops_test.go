@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"iter"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_zip3_and_repeatForever() {

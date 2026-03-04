@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 // Example_practicalForEachErr demonstrates the real-world use case:

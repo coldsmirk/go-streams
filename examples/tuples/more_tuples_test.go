@@ -3,7 +3,7 @@ package tuples_examples
 import (
 	"fmt"
 
-	streams "github.com/ilxqx/go-streams"
+	streams "github.com/coldsmirk/go-streams"
 )
 
 func Example_tuple_mappers_and_unzip() {

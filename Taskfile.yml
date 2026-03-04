@@ -79,7 +79,7 @@ tasks:
   doc:
     desc: Start documentation server
     cmds:
-      - echo "Starting godoc server at http://localhost:6060/pkg/github.com/ilxqx/go-streams/"
+      - echo "Starting godoc server at http://localhost:6060/pkg/github.com/coldsmirk/go-streams/"
       - godoc -http=:6060
   
   modernize:

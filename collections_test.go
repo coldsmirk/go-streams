@@ -4,7 +4,7 @@ import (
 	"cmp"
 	"testing"
 
-	collections "github.com/ilxqx/go-collections"
+	collections "github.com/coldsmirk/go-collections"
 	"github.com/stretchr/testify/assert"
 )
 
