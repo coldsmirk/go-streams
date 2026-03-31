@@ -359,6 +359,20 @@ func MapPairs[K, V, K2, V2 any](s Stream2[K, V], fn func(K, V) (K2, V2)) Stream2
 	}
 }
 
+// MapToPairs maps each element of a Stream[T] into a key-value pair, returning a Stream2[K, V].
+// It bridges Stream[T] into the Stream2[K, V] world for downstream pair-oriented operations.
+func MapToPairs[T, K, V any](s Stream[T], fn func(T) (K, V)) Stream2[K, V] {
+	return Stream2[K, V]{
+		seq: func(yield func(K, V) bool) {
+			for v := range s.seq {
+				if !yield(fn(v)) {
+					return
+				}
+			}
+		},
+	}
+}
+
 // MapPairsTo transforms each key-value pair of a Stream2 into a single value, returning a Stream[R].
 func MapPairsTo[K, V, R any](s Stream2[K, V], fn func(K, V) R) Stream[R] {
 	return Stream[R]{

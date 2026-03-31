@@ -287,6 +287,55 @@ func TestStream2TypeTransformations(t *testing.T) {
 		assert.Empty(t, result, "MapPairsTo on empty stream should return empty slice")
 	})
 
+	t.Run("MapToPairs", func(t *testing.T) {
+		t.Parallel()
+		s := Of("hello", "go", "streams")
+		result := MapToPairs(s, func(s string) (string, int) {
+			return s, len(s)
+		}).CollectPairs()
+
+		assert.Equal(t, []Pair[string, int]{
+			NewPair("hello", 5),
+			NewPair("go", 2),
+			NewPair("streams", 7),
+		}, result, "MapToPairs should map each element to a key-value pair")
+	})
+
+	t.Run("MapToPairsEmpty", func(t *testing.T) {
+		t.Parallel()
+		result := MapToPairs(Empty[string](), func(s string) (string, int) {
+			return s, len(s)
+		}).CollectPairs()
+
+		assert.Empty(t, result, "MapToPairs on empty stream should return empty")
+	})
+
+	t.Run("MapToPairsChained", func(t *testing.T) {
+		t.Parallel()
+		result := MapToPairs(Of("a", "bb", "ccc"), func(s string) (int, string) {
+			return len(s), s
+		}).Filter(func(k int, v string) bool {
+			return k > 1
+		}).CollectPairs()
+
+		assert.Equal(t, []Pair[int, string]{
+			NewPair(2, "bb"),
+			NewPair(3, "ccc"),
+		}, result, "MapToPairs should chain with Stream2 operations")
+	})
+
+	t.Run("MapToPairsEarlyTermination", func(t *testing.T) {
+		t.Parallel()
+		count := 0
+		result := MapToPairs(Of(1, 2, 3, 4, 5), func(v int) (int, int) {
+			count++
+			return v, v * v
+		}).Limit(2).CollectPairs()
+
+		assert.Len(t, result, 2, "MapToPairs should support early termination")
+		assert.LessOrEqual(t, count, 3, "MapToPairs should not process all elements beyond limit")
+	})
+
 	t.Run("SwapKeyValue", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2))

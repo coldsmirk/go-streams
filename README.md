@@ -33,7 +33,7 @@ A lazy, type-safe stream processing library for Go 1.25+, built on `iter.Seq` an
 - Resource Management: Using (try-with-resources)
 - IO: FromReaderLines/Scanner/String/Bytes/Runes, FromCSV/TSV/WithHeader (+Err), ToWriter/ToFile/ToCSV(+File)
 - Time‑Based: WithTimestamp, Tumbling/Sliding/Session windows, Throttle/RateLimit/Debounce/Sample/Delay/Timeout, Interval/Timer
-- Stream2: Keys/Values/ToPairs/Reduce/DistinctKeys/Values, MapKeys/Values/Pairs, ReduceByKey/GroupValues/ToMap2
+- Stream2: Keys/Values/ToPairs/Reduce/DistinctKeys/Values, MapKeys/Values/Pairs, MapToPairs, ReduceByKey/GroupValues/ToMap2
 - Joins: Inner/Left/Right/Full, LeftJoinWith/RightJoinWith, CoGroup, JoinBy/LeftJoinBy, Semi/Anti (and *By)
 - Numeric/Stats: Sum/Average/Min/Max/MinMax/Product/RunningSum/Differences/etc, GetStatistics
 - Collectors: ToSlice/Set, Grouping/Partitioning/ToMap, Mapping/Filtering/FlatMapping/Teeing, TopK/BottomK/Quantile/Histogram + helpers
@@ -302,6 +302,7 @@ s2.Limit(n)              // Take first n pairs
 s2.Skip(n)               // Skip first n pairs
 
 // Type-changing transformations (free functions)
+streams.MapToPairs(s, fn)    // Map each element to (K,V) → Stream2
 streams.MapKeysTo(s2, fn)    // Transform key type
 streams.MapValuesTo(s2, fn)  // Transform value type
 streams.MapPairs(s2, fn)     // Transform both types → Stream2
@@ -1418,6 +1419,7 @@ func (s Stream2[K,V]) CollectPairs() []Pair[K,V]
 func (s Stream2[K,V]) Reduce(identity Pair[K,V], fn func(Pair[K,V], K, V) Pair[K,V]) Pair[K,V]
 
 // Free transformations
+func MapToPairs[T,K,V any](s Stream[T], fn func(T) (K,V)) Stream2[K,V]
 func MapKeysTo[K,V,K2 any](s Stream2[K,V], fn func(K) K2) Stream2[K2,V]
 func MapValuesTo[K,V,V2 any](s Stream2[K,V], fn func(V) V2) Stream2[K,V2]
 func MapPairs[K,V,K2,V2 any](s Stream2[K,V], fn func(K,V) (K2,V2)) Stream2[K2,V2]
