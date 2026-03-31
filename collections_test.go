@@ -174,8 +174,7 @@ func TestToHashMapC(t *testing.T) {
 	t.Parallel()
 	m := ToHashMapC(
 		Of("a", "bb", "ccc"),
-		func(s string) int { return len(s) },
-		func(s string) string { return s },
+		func(s string) (int, string) { return len(s), s },
 	)
 	assert.Equal(t, 3, m.Size(), "ToHashMapC should map all elements")
 
@@ -192,8 +191,7 @@ func TestToTreeMapC(t *testing.T) {
 	t.Parallel()
 	m := ToTreeMapC(
 		Of("a", "bb", "ccc"),
-		func(s string) int { return len(s) },
-		func(s string) string { return s },
+		func(s string) (int, string) { return len(s), s },
 		cmp.Compare[int],
 	)
 	assert.Equal(t, 3, m.Size(), "ToTreeMapC should map all elements")
@@ -358,8 +356,7 @@ func TestToHashMapCollector(t *testing.T) {
 	m := CollectTo(
 		Of("a", "bb"),
 		ToHashMapCollector(
-			func(s string) int { return len(s) },
-			func(s string) string { return s },
+			func(s string) (int, string) { return len(s), s },
 		),
 	)
 	assert.Equal(t, 2, m.Size(), "ToHashMapCollector should collect all mappings")
@@ -370,8 +367,7 @@ func TestToTreeMapCollector(t *testing.T) {
 	m := CollectTo(
 		Of("a", "bb"),
 		ToTreeMapCollector(
-			func(s string) int { return len(s) },
-			func(s string) string { return s },
+			func(s string) (int, string) { return len(s), s },
 			cmp.Compare[int],
 		),
 	)

@@ -15,7 +15,7 @@ func Example_collectorsAdvanced() {
 	// ToMap with merge
 	m := streams.CollectTo(
 		streams.Of("a", "aa", "b"),
-		streams.ToMapCollectorMerging(func(s string) int { return len(s) }, func(s string) string { return s }, func(a, b string) string { return a + "|" + b }),
+		streams.ToMapCollectorMerging(func(s string) (int, string) { return len(s), s }, func(a, b string) string { return a + "|" + b }),
 	)
 	fmt.Println(len(m), strings.Contains(m[1], "b"))
 

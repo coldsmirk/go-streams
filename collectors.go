@@ -236,11 +236,12 @@ func PartitioningByCollector[T any](pred func(T) bool) Collector[T, *partitionSt
 }
 
 // ToMapCollector returns a Collector that creates a map from elements.
-func ToMapCollector[T any, K comparable, V any](keyFn func(T) K, valFn func(T) V) Collector[T, map[K]V, map[K]V] {
+func ToMapCollector[T any, K comparable, V any](fn func(T) (K, V)) Collector[T, map[K]V, map[K]V] {
 	return Collector[T, map[K]V, map[K]V]{
 		Supplier: func() map[K]V { return make(map[K]V) },
 		Accumulator: func(m map[K]V, v T) map[K]V {
-			m[keyFn(v)] = valFn(v)
+			k, val := fn(v)
+			m[k] = val
 			return m
 		},
 		Finisher: func(m map[K]V) map[K]V { return m },
@@ -249,15 +250,13 @@ func ToMapCollector[T any, K comparable, V any](keyFn func(T) K, valFn func(T) V
 
 // ToMapCollectorMerging returns a Collector that creates a map with a merge function for duplicate keys.
 func ToMapCollectorMerging[T any, K comparable, V any](
-	keyFn func(T) K,
-	valFn func(T) V,
+	fn func(T) (K, V),
 	merge func(V, V) V,
 ) Collector[T, map[K]V, map[K]V] {
 	return Collector[T, map[K]V, map[K]V]{
 		Supplier: func() map[K]V { return make(map[K]V) },
 		Accumulator: func(m map[K]V, v T) map[K]V {
-			k := keyFn(v)
-			newVal := valFn(v)
+			k, newVal := fn(v)
 			if existing, ok := m[k]; ok {
 				m[k] = merge(existing, newVal)
 			} else {

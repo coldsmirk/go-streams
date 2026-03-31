@@ -272,7 +272,7 @@ s.IsEmpty()              // Is stream empty?
 s.Seq()                  // Convert back to iter.Seq
 
 // Free functions
-streams.ToMap(s, keyFn, valFn)
+streams.ToMap(s, fn)     // fn func(T) (K, V)
 streams.ToSet(s)
 streams.GroupBy(s, keyFn)
 streams.PartitionBy(s, pred)
@@ -363,7 +363,7 @@ streams.CollectTo(s, streams.MinByCollector[int](cmp))
 // Grouping collectors
 streams.CollectTo(s, streams.GroupingByCollector(keyFn))
 streams.CollectTo(s, streams.PartitioningByCollector(pred))
-streams.CollectTo(s, streams.ToMapCollector(keyFn, valFn))
+streams.CollectTo(s, streams.ToMapCollector(fn))
 
 // Composite collectors
 streams.MappingCollector(mapper, downstream)
@@ -1078,14 +1078,13 @@ func (s Stream[T]) IsEmpty() bool
 func (s Stream[T]) IsNotEmpty() bool
 
 // Collect into maps/sets and groupings
-func ToMap[T any, K comparable, V any](s Stream[T], keyFn func(T) K, valFn func(T) V) map[K]V
+func ToMap[T any, K comparable, V any](s Stream[T], fn func(T) (K, V)) map[K]V
 func ToSet[T comparable](s Stream[T]) map[T]struct{}
 func GroupBy[T any, K comparable](s Stream[T], keyFn func(T) K) map[K][]T
-func GroupByTo[T any, K comparable, V any](s Stream[T], keyFn func(T) K, valFn func(T) V) map[K][]V
+func GroupByTo[T any, K comparable, V any](s Stream[T], fn func(T) (K, V)) map[K][]V
 func PartitionBy[T any](s Stream[T], pred func(T) bool) ([]T, []T)
 func Joining(s Stream[string], sep string) string
 func JoiningWithPrefixSuffix(s Stream[string], sep, prefix, suffix string) string
-func Associate[T any, K comparable, V any](s Stream[T], fn func(T) (K,V)) map[K]V
 func AssociateBy[T any, K comparable](s Stream[T], keyFn func(T) K) map[K]T
 func IndexBy[T any, K comparable](s Stream[T], keyFn func(T) K) map[K]T
 func CountBy[T any, K comparable](s Stream[T], keyFn func(T) K) map[K]int
@@ -1130,7 +1129,7 @@ at2 := s.At(2)                        // Some(3)
 single := streams.Of(42).Single()     // Some(42)
 
 // Collectors-like helpers
-mp := streams.ToMap(streams.Of("a","bb"), func(s string) int { return len(s) }, func(s string) string { return s }) // map[1:"a",2:"bb"]
+mp := streams.ToMap(streams.Of("a","bb"), func(s string) (int, string) { return len(s), s }) // map[1:"a",2:"bb"]
 set := streams.ToSet(streams.Of(1,2,2)) // map[1:{} 2:{}]
 g := streams.GroupBy(streams.Of("a","aa"), func(s string) int { return len(s) }) // map[1:["a"] 2:["aa"]]
 joined := streams.Joining(streams.Of("a","b"), ",") // "a,b"
@@ -1555,8 +1554,8 @@ func MinByCollector[T any](cmp func(T,T) int) Collector[T, *minState[T], Optiona
 // Grouping and maps
 func GroupingByCollector[T any, K comparable](keyFn func(T) K) Collector[T, map[K][]T, map[K][]T]
 func PartitioningByCollector[T any](pred func(T) bool) Collector[T, *partitionState[T], map[bool][]T]
-func ToMapCollector[T any, K comparable, V any](keyFn func(T) K, valFn func(T) V) Collector[T, map[K]V, map[K]V]
-func ToMapCollectorMerging[T any, K comparable, V any](keyFn func(T) K, valFn func(T) V, merge func(V,V) V) Collector[T, map[K]V, map[K]V]
+func ToMapCollector[T any, K comparable, V any](fn func(T) (K, V)) Collector[T, map[K]V, map[K]V]
+func ToMapCollectorMerging[T any, K comparable, V any](fn func(T) (K, V), merge func(V,V) V) Collector[T, map[K]V, map[K]V]
 
 // Composition
 func MappingCollector[T,U,A,R any](mapper func(T) U, downstream Collector[U,A,R]) Collector[T,A,R]
@@ -1770,8 +1769,8 @@ list := streams.ToArrayList(s)                                   // collections.
 list := streams.ToLinkedList(s)                                  // LinkedList implementation
 
 // Collect into Map
-m := streams.ToHashMapC(s, keyFn, valFn)                         // collections.Map[K,V]
-m := streams.ToTreeMapC(s, keyFn, valFn, keyCmp)                 // collections.SortedMap[K,V]
+m := streams.ToHashMapC(s, fn)                                   // collections.Map[K,V]
+m := streams.ToTreeMapC(s, fn, keyCmp)                           // collections.SortedMap[K,V]
 m := streams.ToHashMap2C(stream2)                                // From Stream2 to Map
 
 // GroupBy into collections.Map
@@ -1793,8 +1792,8 @@ streams.CollectTo(s, streams.ToTreeSetCollector(cmp))            // collections.
 streams.CollectTo(s, streams.ToArrayListCollector[T]())          // collections.List
 
 // Collector for Map
-streams.CollectTo(s, streams.ToHashMapCollector(keyFn, valFn))   // collections.Map
-streams.CollectTo(s, streams.ToTreeMapCollector(keyFn, valFn, keyCmp)) // collections.SortedMap
+streams.CollectTo(s, streams.ToHashMapCollector(fn))             // collections.Map
+streams.CollectTo(s, streams.ToTreeMapCollector(fn, keyCmp))     // collections.SortedMap
 ```
 
 #### Set Operations Example

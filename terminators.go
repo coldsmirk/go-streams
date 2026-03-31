@@ -233,11 +233,12 @@ func FoldTo[T, R any](s Stream[T], identity R, fn func(R, T) R) R {
 	return result
 }
 
-// ToMap collects Stream into a map using key and value functions.
-func ToMap[T any, K comparable, V any](s Stream[T], keyFn func(T) K, valFn func(T) V) map[K]V {
+// ToMap collects Stream into a map using a function that returns key-value pairs.
+func ToMap[T any, K comparable, V any](s Stream[T], fn func(T) (K, V)) map[K]V {
 	result := make(map[K]V)
 	for v := range s.seq {
-		result[keyFn(v)] = valFn(v)
+		k, val := fn(v)
+		result[k] = val
 	}
 	return result
 }
@@ -261,12 +262,12 @@ func GroupBy[T any, K comparable](s Stream[T], keyFn func(T) K) map[K][]T {
 	return result
 }
 
-// GroupByTo groups elements by a key function and transforms values.
-func GroupByTo[T any, K comparable, V any](s Stream[T], keyFn func(T) K, valFn func(T) V) map[K][]V {
+// GroupByTo groups elements by a function that returns key-value pairs, collecting values into slices.
+func GroupByTo[T any, K comparable, V any](s Stream[T], fn func(T) (K, V)) map[K][]V {
 	result := make(map[K][]V)
 	for v := range s.seq {
-		k := keyFn(v)
-		result[k] = append(result[k], valFn(v))
+		k, val := fn(v)
+		result[k] = append(result[k], val)
 	}
 	return result
 }
@@ -303,16 +304,6 @@ func Joining(s Stream[string], sep string) string {
 // JoiningWithPrefixSuffix concatenates string elements with separator, prefix, and suffix.
 func JoiningWithPrefixSuffix(s Stream[string], sep, prefix, suffix string) string {
 	return prefix + Joining(s, sep) + suffix
-}
-
-// Associate creates a map from elements using a function that returns key-value pairs.
-func Associate[T any, K comparable, V any](s Stream[T], fn func(T) (K, V)) map[K]V {
-	result := make(map[K]V)
-	for v := range s.seq {
-		k, val := fn(v)
-		result[k] = val
-	}
-	return result
 }
 
 // AssociateBy creates a map using element as value and a key function.

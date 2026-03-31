@@ -29,7 +29,7 @@ func Example_terminals_reduce_map_set_group() {
 	s := streams.Of(1, 2, 3)
 	fmt.Println(s.Reduce(0, func(a, b int) int { return a + b }))
 	fmt.Println(streams.FoldTo(streams.Of("a", "bb"), 0, func(acc int, v string) int { return acc + len(v) }))
-	m := streams.ToMap(streams.Of("a", "bb"), func(s string) int { return len(s) }, func(s string) string { return s })
+	m := streams.ToMap(streams.Of("a", "bb"), func(s string) (int, string) { return len(s), s })
 	keys := slices.Collect(streams.FromMap(m).Keys().Seq())
 	slices.Sort(keys)
 	fmt.Println(keys)
@@ -53,7 +53,7 @@ func Example_terminals_index_and_more() {
 	s := streams.Of(10, 20, 30)
 	fmt.Println(s.At(1).Get(), s.Nth(2).Get())
 	fmt.Println(streams.Contains(streams.Of("a", "b"), "b"))
-	fmt.Println(streams.Associate(streams.Of("a", "bb"), func(s string) (string, int) { return s, len(s) })["bb"])
+	fmt.Println(streams.ToMap(streams.Of("a", "bb"), func(s string) (string, int) { return s, len(s) })["bb"])
 	fmt.Println(streams.AssociateBy(streams.Of("a", "bb"), func(s string) int { return len(s) })[2])
 	fmt.Println(streams.IndexBy(streams.Of("a", "bb"), func(s string) string { return strings.ToUpper(s) })["BB"]) // value for key "BB"
 	fmt.Println(streams.CountBy(streams.Of("a", "aa"), func(s string) int { return len(s) })[2])

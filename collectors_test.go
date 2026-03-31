@@ -111,8 +111,7 @@ func TestCollectors(t *testing.T) {
 		}
 
 		result := CollectTo(FromSlice(people), ToMapCollector(
-			func(p Person) int { return p.Id },
-			func(p Person) string { return p.Name },
+			func(p Person) (int, string) { return p.Id, p.Name },
 		))
 
 		assert.Equal(t, "Alice", result[1], "ToMapCollector should create map")
@@ -132,8 +131,7 @@ func TestCollectors(t *testing.T) {
 		}
 
 		result := CollectTo(FromSlice(items), ToMapCollectorMerging(
-			func(i Item) string { return i.Key },
-			func(i Item) int { return i.Value },
+			func(i Item) (string, int) { return i.Key, i.Value },
 			func(v1, v2 int) int { return v1 + v2 },
 		))
 

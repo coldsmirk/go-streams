@@ -67,7 +67,7 @@ func Example_contains_and_joining() {
 }
 
 func Example_associate_and_associateBy() {
-	m := streams.Associate(streams.Of("a", "bb", "ccc"), func(s string) (string, int) { return s, len(s) })
+	m := streams.ToMap(streams.Of("a", "bb", "ccc"), func(s string) (string, int) { return s, len(s) })
 	fmt.Println(m["bb"])
 	mb := streams.AssociateBy(streams.Of("a", "bb"), func(s string) int { return len(s) })
 	fmt.Println(mb[2])
@@ -77,7 +77,7 @@ func Example_associate_and_associateBy() {
 }
 
 func Example_groupByTo_indexBy_countBy() {
-	g := streams.GroupByTo(streams.Of("a", "bb", "ccc"), func(s string) int { return len(s) }, func(s string) string { return s + "!" })
+	g := streams.GroupByTo(streams.Of("a", "bb", "ccc"), func(s string) (int, string) { return len(s), s + "!" })
 	fmt.Println(g[1][0], g[2][0])
 	idx := streams.IndexBy(streams.Of("a", "bb"), func(s string) int { return len(s) })
 	fmt.Println(idx[1], idx[2])
@@ -100,7 +100,7 @@ func Example_partitionBy_mostCommon() {
 }
 
 func Example_toMap_toSet_foldTo() {
-	m := streams.ToMap(streams.Of("a", "bb"), func(s string) int { return len(s) }, func(s string) string { return s })
+	m := streams.ToMap(streams.Of("a", "bb"), func(s string) (int, string) { return len(s), s })
 	fmt.Println(m[1], m[2])
 	set := streams.ToSet(streams.Of(1, 2, 2, 3))
 	_, ok1 := set[1]

@@ -115,20 +115,22 @@ func ToLinkedList[T any](s Stream[T]) collections.List[T] {
 
 // ToHashMapC collects stream elements into a collections.Map[K, V].
 // The "C" suffix distinguishes it from ToMap which returns a Go map.
-func ToHashMapC[T any, K comparable, V any](s Stream[T], keyFn func(T) K, valFn func(T) V) collections.Map[K, V] {
+func ToHashMapC[T any, K comparable, V any](s Stream[T], fn func(T) (K, V)) collections.Map[K, V] {
 	m := collections.NewHashMap[K, V]()
 	for v := range s.Seq() {
-		m.Put(keyFn(v), valFn(v))
+		k, val := fn(v)
+		m.Put(k, val)
 	}
 	return m
 }
 
 // ToTreeMapC collects stream elements into a collections.SortedMap[K, V].
 // Keys are maintained in sorted order according to the comparator.
-func ToTreeMapC[T any, K any, V any](s Stream[T], keyFn func(T) K, valFn func(T) V, keyCmp collections.Comparator[K]) collections.SortedMap[K, V] {
+func ToTreeMapC[T any, K any, V any](s Stream[T], fn func(T) (K, V), keyCmp collections.Comparator[K]) collections.SortedMap[K, V] {
 	m := collections.NewTreeMap[K, V](keyCmp)
 	for v := range s.Seq() {
-		m.Put(keyFn(v), valFn(v))
+		k, val := fn(v)
+		m.Put(k, val)
 	}
 	return m
 }
@@ -181,11 +183,12 @@ func ToArrayListCollector[T any]() Collector[T, collections.List[T], collections
 }
 
 // ToHashMapCollector returns a Collector that accumulates elements into a collections.Map.
-func ToHashMapCollector[T any, K comparable, V any](keyFn func(T) K, valFn func(T) V) Collector[T, collections.Map[K, V], collections.Map[K, V]] {
+func ToHashMapCollector[T any, K comparable, V any](fn func(T) (K, V)) Collector[T, collections.Map[K, V], collections.Map[K, V]] {
 	return Collector[T, collections.Map[K, V], collections.Map[K, V]]{
 		Supplier: func() collections.Map[K, V] { return collections.NewHashMap[K, V]() },
 		Accumulator: func(acc collections.Map[K, V], v T) collections.Map[K, V] {
-			acc.Put(keyFn(v), valFn(v))
+			k, val := fn(v)
+			acc.Put(k, val)
 			return acc
 		},
 		Finisher: func(acc collections.Map[K, V]) collections.Map[K, V] { return acc },
@@ -193,11 +196,12 @@ func ToHashMapCollector[T any, K comparable, V any](keyFn func(T) K, valFn func(
 }
 
 // ToTreeMapCollector returns a Collector that accumulates elements into a collections.SortedMap.
-func ToTreeMapCollector[T any, K any, V any](keyFn func(T) K, valFn func(T) V, keyCmp collections.Comparator[K]) Collector[T, collections.SortedMap[K, V], collections.SortedMap[K, V]] {
+func ToTreeMapCollector[T any, K any, V any](fn func(T) (K, V), keyCmp collections.Comparator[K]) Collector[T, collections.SortedMap[K, V], collections.SortedMap[K, V]] {
 	return Collector[T, collections.SortedMap[K, V], collections.SortedMap[K, V]]{
 		Supplier: func() collections.SortedMap[K, V] { return collections.NewTreeMap[K, V](keyCmp) },
 		Accumulator: func(acc collections.SortedMap[K, V], v T) collections.SortedMap[K, V] {
-			acc.Put(keyFn(v), valFn(v))
+			k, val := fn(v)
+			acc.Put(k, val)
 			return acc
 		},
 		Finisher: func(acc collections.SortedMap[K, V]) collections.SortedMap[K, V] { return acc },

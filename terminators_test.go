@@ -314,10 +314,8 @@ func TestToMap(t *testing.T) {
 		{Id: 2, Name: "Bob"},
 	}
 
-	result := ToMap(FromSlice(people), func(p Person) int {
-		return p.Id
-	}, func(p Person) string {
-		return p.Name
+	result := ToMap(FromSlice(people), func(p Person) (int, string) {
+		return p.Id, p.Name
 	})
 
 	assert.Equal(t, "Alice", result[1], "ToMap should create map with key function")
@@ -350,13 +348,11 @@ func TestGroupBy(t *testing.T) {
 // TestGroupByTo tests GroupByTo function.
 func TestGroupByTo(t *testing.T) {
 	t.Parallel()
-	result := GroupByTo(Of(1, 2, 3, 4), func(n int) string {
+	result := GroupByTo(Of(1, 2, 3, 4), func(n int) (string, int) {
 		if n%2 == 0 {
-			return "even"
+			return "even", n * 10
 		}
-		return "odd"
-	}, func(n int) int {
-		return n * 10
+		return "odd", n * 10
 	})
 
 	assert.Equal(t, []int{10, 30}, result["odd"], "GroupByTo should transform values")
@@ -399,15 +395,15 @@ func TestJoining(t *testing.T) {
 // TestAssociate tests Associate functions.
 func TestAssociate(t *testing.T) {
 	t.Parallel()
-	t.Run("Associate", func(t *testing.T) {
+	t.Run("ToMap", func(t *testing.T) {
 		t.Parallel()
-		result := Associate(Of("abc", "de", "f"), func(s string) (int, string) {
+		result := ToMap(Of("abc", "de", "f"), func(s string) (int, string) {
 			return len(s), s
 		})
 
-		assert.Equal(t, "abc", result[3], "Associate should map by function result")
-		assert.Equal(t, "de", result[2], "Associate should map by function result")
-		assert.Equal(t, "f", result[1], "Associate should map by function result")
+		assert.Equal(t, "abc", result[3], "ToMap should map by function result")
+		assert.Equal(t, "de", result[2], "ToMap should map by function result")
+		assert.Equal(t, "f", result[1], "ToMap should map by function result")
 	})
 
 	t.Run("AssociateBy", func(t *testing.T) {

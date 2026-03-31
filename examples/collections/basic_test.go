@@ -99,8 +99,7 @@ func Example_toHashMapC() {
 	// Collect Stream into a HashMap
 	m := streams.ToHashMapC(
 		streams.Of("apple", "banana", "cherry"),
-		func(s string) string { return string(s[0]) }, // first char as key
-		func(s string) int { return len(s) },          // length as value
+		func(s string) (string, int) { return string(s[0]), len(s) }, // first char as key, length as value
 	)
 	aVal, _ := m.Get("a")
 	bVal, _ := m.Get("b")
@@ -162,8 +161,7 @@ func Example_collectors_hashMap() {
 	m := streams.CollectTo(
 		streams.Of("a", "bb", "ccc"),
 		streams.ToHashMapCollector(
-			func(s string) int { return len(s) },
-			func(s string) string { return s },
+			func(s string) (int, string) { return len(s), s },
 		),
 	)
 	oneVal, _ := m.Get(1)
