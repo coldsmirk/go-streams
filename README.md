@@ -304,7 +304,8 @@ s2.Skip(n)               // Skip first n pairs
 // Type-changing transformations (free functions)
 streams.MapKeysTo(s2, fn)    // Transform key type
 streams.MapValuesTo(s2, fn)  // Transform value type
-streams.MapPairs(s2, fn)     // Transform both types
+streams.MapPairs(s2, fn)     // Transform both types → Stream2
+streams.MapPairsTo(s2, fn)   // Transform pair into single value → Stream[R]
 streams.SwapKeyValue(s2)     // Swap keys and values
 streams.DistinctKeys(s2)     // Keep first occurrence of each key
 streams.DistinctValues(s2)   // Keep first occurrence of each value
@@ -1420,6 +1421,7 @@ func (s Stream2[K,V]) Reduce(identity Pair[K,V], fn func(Pair[K,V], K, V) Pair[K
 func MapKeysTo[K,V,K2 any](s Stream2[K,V], fn func(K) K2) Stream2[K2,V]
 func MapValuesTo[K,V,V2 any](s Stream2[K,V], fn func(V) V2) Stream2[K,V2]
 func MapPairs[K,V,K2,V2 any](s Stream2[K,V], fn func(K,V) (K2,V2)) Stream2[K2,V2]
+func MapPairsTo[K,V,R any](s Stream2[K,V], fn func(K,V) R) Stream[R]
 func SwapKeyValue[K,V any](s Stream2[K,V]) Stream2[V,K]
 func ToMap2[K comparable, V any](s Stream2[K,V]) map[K]V
 func ReduceByKey[K comparable, V any](s Stream2[K,V], merge func(V,V) V) map[K]V
