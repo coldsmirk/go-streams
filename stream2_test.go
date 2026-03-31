@@ -1,6 +1,7 @@
 package streams
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -265,6 +266,25 @@ func TestStream2TypeTransformations(t *testing.T) {
 
 		assert.Equal(t, 1, result[0].First, "MapPairs should transform both types")
 		assert.Equal(t, "a", result[0].Second, "MapPairs should transform both types")
+	})
+
+	t.Run("MapPairsTo", func(t *testing.T) {
+		t.Parallel()
+		s := PairsOf(NewPair("a", 1), NewPair("bb", 2), NewPair("ccc", 3))
+		result := MapPairsTo(s, func(k string, v int) string {
+			return k + "=" + strconv.Itoa(v)
+		}).Collect()
+
+		assert.Equal(t, []string{"a=1", "bb=2", "ccc=3"}, result, "MapPairsTo should combine key and value into single element")
+	})
+
+	t.Run("MapPairsToEmpty", func(t *testing.T) {
+		t.Parallel()
+		result := MapPairsTo(Empty2[string, int](), func(k string, v int) string {
+			return k
+		}).Collect()
+
+		assert.Empty(t, result, "MapPairsTo on empty stream should return empty slice")
 	})
 
 	t.Run("SwapKeyValue", func(t *testing.T) {
