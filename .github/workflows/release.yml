@@ -24,7 +24,10 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
-          fetch-depth: 50
+          # Full history and every tag: the changelog below walks from the
+          # previous release tag to this one, and a shallow clone does not
+          # reliably contain the older tag, which silently truncates the range.
+          fetch-depth: 0
 
       - name: Generate Changelog
         id: changelog
@@ -38,10 +41,6 @@ jobs:
             --jq '.[].tag_name | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' \
             | head -1)
 
-          if [ -n "$PREVIOUS_TAG" ]; then
-            git fetch --shallow-since="$(gh api repos/${{ github.repository }}/releases/tags/${PREVIOUS_TAG} --jq '.published_at')" || git fetch --unshallow
-          fi
-
           echo "Generating changelog from ${PREVIOUS_TAG} to ${CURRENT_TAG}"
 
           FEATURES=""
@@ -54,9 +53,13 @@ jobs:
           OTHER=""
 
           if [ -z "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"%s" $CURRENT_TAG)
+            COMMITS=$(git log --no-merges --pretty=format:"%s" $CURRENT_TAG)
           else
-            COMMITS=$(git log --pretty=format:"%s" ${PREVIOUS_TAG}..${CURRENT_TAG})
+            git rev-parse -q --verify "${PREVIOUS_TAG}^{commit}" >/dev/null \
+              || { echo "::error::${PREVIOUS_TAG} is not in the clone; the changelog would be truncated"; exit 1; }
+            # --no-merges: a --no-ff merge repeats the subject of the commit
+            # it brings in, which would list every merged change twice.
+            COMMITS=$(git log --no-merges --pretty=format:"%s" ${PREVIOUS_TAG}..${CURRENT_TAG})
           fi
 
           while IFS= read -r commit; do
