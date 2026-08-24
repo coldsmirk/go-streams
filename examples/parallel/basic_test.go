@@ -17,4 +17,3 @@ func Example_parallelMap() {
 	// Output:
 	// [1 4 9 16 25]
 }
-

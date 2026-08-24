@@ -37,4 +37,3 @@ func Example_interval_and_timer() {
 	_ = streams.Interval(ctx, 3*time.Millisecond).Limit(3).Collect()
 	_ = streams.Timer(ctx, 1*time.Millisecond, 42).Collect()
 }
-

@@ -26,4 +26,3 @@ func Example_optional_more() {
 	// 8 0
 	// 1 true 1 true
 }
-

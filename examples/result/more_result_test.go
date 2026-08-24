@@ -34,4 +34,3 @@ func Example_result_map_and_filters() {
 	// [1 2] [1]
 	// true
 }
-

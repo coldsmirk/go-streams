@@ -34,6 +34,5 @@ func Example_coGroup() {
 	}
 	fmt.Println()
 	// Output:
-	// a:2|1 b:1|0 c:0|1 
+	// a:2|1 b:1|0 c:0|1
 }
-

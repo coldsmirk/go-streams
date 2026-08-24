@@ -43,4 +43,3 @@ func Example_parallelForEach_and_collect() {
 	// 15
 	// [5 6 7 8 9]
 }
-

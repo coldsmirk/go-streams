@@ -15,4 +15,3 @@ func Example_seq_forRange() {
 	// Output:
 	// 6
 }
-

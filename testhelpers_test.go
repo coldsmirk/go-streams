@@ -24,4 +24,3 @@ func createTempFile(t *testing.T, pattern string, content string) string {
 	require.NoError(t, err, "close temp file should succeed")
 	return path
 }
-

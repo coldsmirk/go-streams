@@ -22,4 +22,3 @@ func Example_tuple_mappers_and_unzip() {
 	// {1 2}
 	// [a b] [1 2]
 }
-

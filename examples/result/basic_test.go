@@ -15,4 +15,3 @@ func Example_resultPipeline() {
 	// Output:
 	// [1] true
 }
-

@@ -113,7 +113,7 @@ func Example_practicalDataProcessing() {
 	records := []Record{
 		{ID: 1, Name: "Alice"},
 		{ID: 2, Name: "Bob"},
-		{ID: 3, Name: ""},  // Invalid: empty name
+		{ID: 3, Name: ""}, // Invalid: empty name
 		{ID: 4, Name: "Dave"},
 	}
 

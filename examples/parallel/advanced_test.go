@@ -24,4 +24,3 @@ func Example_parallel_unordered_and_collect_reduce() {
 	// [1 4 9 16 25]
 	// 15
 }
-

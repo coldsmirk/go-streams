@@ -13,4 +13,3 @@ func Example_topK() {
 	// Output:
 	// [5 4]
 }
-

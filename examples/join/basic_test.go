@@ -38,4 +38,3 @@ func Example_leftJoin() {
 	// Output:
 	// 2 true false
 }
-

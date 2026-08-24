@@ -21,4 +21,3 @@ func Example_parallelFlatMap_chunked() {
 	// Output:
 	// [1 101 2 102 3 103 4 104 5 105]
 }
-

@@ -12,4 +12,3 @@ func Example_quantile() {
 	// Output:
 	// true 3
 }
-

@@ -16,4 +16,3 @@ func Example_basic() {
 	// Output:
 	// [4 8]
 }
-

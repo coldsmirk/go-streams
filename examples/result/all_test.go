@@ -18,4 +18,3 @@ func Example_collectResultsAll() {
 	// Output:
 	// [1 2] 1
 }
-

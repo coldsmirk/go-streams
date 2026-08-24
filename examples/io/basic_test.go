@@ -13,4 +13,3 @@ func Example_lines() {
 	// Output:
 	// [a b]
 }
-

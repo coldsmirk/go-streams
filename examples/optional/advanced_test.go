@@ -25,4 +25,3 @@ func Example_optionalAdvanced() {
 	// {1 a}
 	// 3
 }
-

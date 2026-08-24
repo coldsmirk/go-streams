@@ -8,7 +8,10 @@ import (
 
 func Example_joinBy() {
 	type U struct{ ID string }
-	type O struct{ UID string; Amt int }
+	type O struct {
+		UID string
+		Amt int
+	}
 	users := streams.Of(U{"u1"}, U{"u2"})
 	orders := streams.Of(O{"u1", 10}, O{"u1", 20})
 	joined := streams.JoinBy(users, orders, func(u U) string { return u.ID }, func(o O) string { return o.UID }).Collect()
@@ -17,4 +20,3 @@ func Example_joinBy() {
 	// Output:
 	// 2 u1 u1
 }
-

@@ -31,4 +31,3 @@ func Example_collectorsAdvanced() {
 	// 2 true
 	// 2.5
 }
-

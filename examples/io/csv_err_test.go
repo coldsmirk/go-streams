@@ -14,4 +14,3 @@ func Example_csvErr() {
 	// Output:
 	// 2 1
 }
-

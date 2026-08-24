@@ -242,9 +242,9 @@ func RightJoinWith[K comparable, V1, V2 any](s1 Stream2[K, V1], s2 Stream2[K, V2
 
 // CoGrouped holds grouped values from two streams with the same key.
 type CoGrouped[K, V1, V2 any] struct {
-	Key    K
-	Left   []V1
-	Right  []V2
+	Key   K
+	Left  []V1
+	Right []V2
 }
 
 // CoGroup groups values from two streams by their keys.

@@ -23,4 +23,3 @@ func Example_sample() {
 	src := streams.Range(0, 100)
 	_ = streams.Sample(ctx, src, 5*time.Millisecond).Collect()
 }
-

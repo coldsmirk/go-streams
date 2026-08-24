@@ -46,4 +46,3 @@ func Example_constructors_advanced() {
 	// [x x x] [1 2 1 2 1]
 	// [a b]
 }
-

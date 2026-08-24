@@ -14,4 +14,3 @@ func Example_numericRunning() {
 	// [1 3 6 11]
 	// [3 5]
 }
-

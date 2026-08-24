@@ -76,4 +76,3 @@ func Example_cartesian_and_combinatorics() {
 	// [[1 2] [1 3] [2 3]]
 	// 6
 }
-

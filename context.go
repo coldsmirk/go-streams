@@ -173,8 +173,9 @@ func CollectCtx[T any](ctx context.Context, s Stream[T]) ([]T, error) {
 // Returns the context error if cancelled, or the first error from action.
 //
 // Examples:
-//   err := ForEachCtx(ctx, s, func(v int) { fmt.Println(v) })
-//   err := ForEachCtx(ctx, s, func(v int) error { return process(v) })
+//
+//	err := ForEachCtx(ctx, s, func(v int) { fmt.Println(v) })
+//	err := ForEachCtx(ctx, s, func(v int) error { return process(v) })
 func ForEachCtx[T any, A ~func(T) | ~func(T) error](ctx context.Context, s Stream[T], action A) error {
 	for v := range s.seq {
 		select {
@@ -200,8 +201,9 @@ func ForEachCtx[T any, A ~func(T) | ~func(T) error](ctx context.Context, s Strea
 // Returns the accumulated result and context error if cancelled, or the first error from reducer.
 //
 // Examples:
-//   result, err := ReduceCtx(ctx, s, 0, func(a, b int) int { return a + b })
-//   result, err := ReduceCtx(ctx, s, 0, func(a, b int) (int, error) { return compute(a, b) })
+//
+//	result, err := ReduceCtx(ctx, s, 0, func(a, b int) int { return a + b })
+//	result, err := ReduceCtx(ctx, s, 0, func(a, b int) (int, error) { return compute(a, b) })
 func ReduceCtx[T any, F ~func(T, T) T | ~func(T, T) (T, error)](ctx context.Context, s Stream[T], identity T, fn F) (T, error) {
 	result := identity
 	for v := range s.seq {

@@ -18,4 +18,3 @@ func Example_stream2() {
 	// [a b]
 	// [1 2]
 }
-

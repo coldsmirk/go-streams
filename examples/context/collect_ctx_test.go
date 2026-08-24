@@ -23,4 +23,3 @@ func Example_collectCtx() {
 	// Output:
 	// true true
 }
-

@@ -18,4 +18,3 @@ func Example_tuplesAdvanced() {
 	// {1 y}
 	// {1 2 3}
 }
-
