@@ -89,7 +89,9 @@ sums  := a.ZipWith(b, func(x, y int) int { return x + y })
 
 ## Core API
 
-Full documentation: `go doc -all github.com/coldsmirk/go-streams/v2`.
+Full documentation and runnable examples:
+[pkg.go.dev](https://pkg.go.dev/github.com/coldsmirk/go-streams/v2), or
+`go doc -all github.com/coldsmirk/go-streams/v2`.
 
 **Constructing** — `Of`, `From`, `From2`, `Pairs`, `Chan`, `ChanContext`,
 `Range`, `Repeat`, `Iterate`, `Generate`, `Empty`, `Empty2`
@@ -249,6 +251,25 @@ instead, and every one of them has a test that proves it.
 
 Go 1.27 or later. Generic methods are load-bearing; the package will not build
 on an earlier toolchain.
+
+## Contributing
+
+Issues and pull requests are welcome. `task check` runs the formatter, `go vet`,
+the linter and the tests — the same set CI runs, plus the `modernize` analyzer.
+
+Two conventions this package holds to:
+
+- **Every operation gets an early-termination test.** The `iter` contract panics
+  if `yield` is called after it returns false, so stopping correctly is a
+  correctness requirement, not a nicety.
+- **Examples are runnable.** They belong in `example_test.go` as `Example`
+  functions with an `// Output:` block, not in this file, so that the compiler
+  and CI check them.
+
+## Acknowledgments
+
+The shape of the API follows the standard library's `slices`, `maps` and `iter`
+packages. The operator vocabulary owes to Java's Stream and Rust's Iterator.
 
 ## License
 
