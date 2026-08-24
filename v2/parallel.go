@@ -151,9 +151,7 @@ func parallelUnordered[T, R any](s Stream[T], work func(T) (R, bool), concurrenc
 				case <-done:
 					return
 				}
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					defer func() { <-sem }()
 					r, keep := work(v)
 					if !keep {
@@ -163,7 +161,7 @@ func parallelUnordered[T, R any](s Stream[T], work func(T) (R, bool), concurrenc
 					case results <- r:
 					case <-done:
 					}
-				}()
+				})
 			}
 		}()
 
@@ -184,12 +182,10 @@ func (s Stream[T]) ParallelForEach(fn func(T), opts ...ParallelOption) {
 	sem := make(chan struct{}, cfg.concurrency)
 	for v := range s {
 		sem <- struct{}{}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() { <-sem }()
 			fn(v)
-		}()
+		})
 	}
 	wg.Wait()
 }
