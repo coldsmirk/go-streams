@@ -2,11 +2,18 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/coldsmirk/go-streams.svg)](https://pkg.go.dev/github.com/coldsmirk/go-streams)
 [![Go Report Card](https://goreportcard.com/badge/github.com/coldsmirk/go-streams)](https://goreportcard.com/report/github.com/coldsmirk/go-streams)
-[![Build Status](https://github.com/coldsmirk/go-streams/actions/workflows/test.yml/badge.svg)](https://github.com/coldsmirk/go-streams/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/coldsmirk/go-streams/branch/main/graph/badge.svg)](https://codecov.io/gh/coldsmirk/go-streams)
+[![Build Status](https://github.com/coldsmirk/go-streams/actions/workflows/test.yml/badge.svg?branch=v1)](https://github.com/coldsmirk/go-streams/actions/workflows/test.yml?query=branch%3Av1)
+[![codecov](https://codecov.io/gh/coldsmirk/go-streams/branch/v1/graph/badge.svg)](https://codecov.io/gh/coldsmirk/go-streams/branch/v1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lazy, type-safe stream processing library for Go 1.25+, built on `iter.Seq` and `iter.Seq2`.
+
+> **This is the v1 maintenance branch.** v1 remains available at
+> `github.com/coldsmirk/go-streams` and receives fixes only. Active development
+> happens in v2, which requires Go 1.27 and uses generic methods so that
+> type-changing operations stay in the chain — see the
+> [main branch](https://github.com/coldsmirk/go-streams) and the
+> [migration guide](https://github.com/coldsmirk/go-streams/blob/main/MIGRATION.md).
 
 ## Features
 

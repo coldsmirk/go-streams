@@ -2,29 +2,16 @@ name: Test
 
 on:
   push:
-    branches: [main]
+    branches: [v1]
     tags:
-      - 'v*.*.*'
+      - 'v0.*.*'
   pull_request:
-    branches: [main]
+    branches: [v1]
 
-# The repository holds two modules: the v1 module at the root and the v2 module
-# in v2/, which requires Go 1.27 for generic methods. Every job runs against
-# both, each on the Go version its go.mod declares.
 jobs:
   test:
-    name: Test (${{ matrix.name }})
+    name: Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: v1
-            dir: .
-            go: '1.25'
-          - name: v2
-            dir: v2
-            go: '1.27'
 
     steps:
       - name: Checkout code
@@ -33,44 +20,29 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: '1.25'
           cache: true
-          cache-dependency-path: ${{ matrix.dir }}/go.sum
 
       - name: Download Go modules
-        working-directory: ${{ matrix.dir }}
         run: go mod download
 
       - name: Run go vet
-        working-directory: ${{ matrix.dir }}
         run: go vet ./...
 
       - name: Run Tests with Coverage
-        working-directory: ${{ matrix.dir }}
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./${{ matrix.dir }}/coverage.txt
-          flags: ${{ matrix.name }}
+          files: ./coverage.txt
           fail_ci_if_error: false
           verbose: true
 
   lint:
-    name: Lint (${{ matrix.name }})
+    name: Lint
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: v1
-            dir: .
-            go: '1.25'
-          - name: v2
-            dir: v2
-            go: '1.27'
 
     steps:
       - name: Checkout code
@@ -79,30 +51,18 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: '1.25'
           cache: true
-          cache-dependency-path: ${{ matrix.dir }}/go.sum
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
-          working-directory: ${{ matrix.dir }}
           args: --timeout=5m
 
   modernize:
-    name: Modernize (${{ matrix.name }})
+    name: Modernize
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: v1
-            dir: .
-            go: '1.25'
-          - name: v2
-            dir: v2
-            go: '1.27'
 
     steps:
       - name: Checkout code
@@ -111,10 +71,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: '1.25'
           cache: true
-          cache-dependency-path: ${{ matrix.dir }}/go.sum
 
       - name: Run modernize analyzer
-        working-directory: ${{ matrix.dir }}
         run: go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -test ./...
