@@ -108,7 +108,9 @@ jobs:
         with:
           tag_name: ${{ github.event.workflow_run.head_branch }}
           name: Release ${{ github.event.workflow_run.head_branch }}
+          # No generate_release_notes: it appends a second "## What's Changed"
+          # on top of the changelog built above, which already groups the
+          # commits by their conventional-commit type.
           body: ${{ steps.changelog.outputs.changelog }}
-          generate_release_notes: true
           draft: false
           prerelease: false
