@@ -26,6 +26,14 @@ jobs:
       - name: Download Go modules
         run: go mod download
 
+      - name: Check formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            gofmt -l .
+            echo "::error::the files above are not gofmt-clean"
+            exit 1
+          fi
+
       - name: Run go vet
         run: go vet ./...
 
