@@ -252,4 +252,4 @@ on an earlier toolchain.
 
 ## License
 
-MIT. See [LICENSE](../LICENSE).
+MIT. See [LICENSE](LICENSE).
