@@ -394,7 +394,7 @@ func TestForEachCtx(t *testing.T) {
 	t.Run("ContextCancellation", func(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
-		var sum int32
+		var sum atomic.Int32
 		counter := 0
 		s := Generate(func() int {
 			counter++
@@ -402,7 +402,7 @@ func TestForEachCtx(t *testing.T) {
 		}).Limit(10)
 
 		err := ForEachCtx(ctx, s, func(n int) {
-			atomic.AddInt32(&sum, int32(n))
+			sum.Add(int32(n))
 			if n >= 3 {
 				cancel()
 			}
