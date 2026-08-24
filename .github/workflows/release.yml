@@ -59,6 +59,7 @@ jobs:
           REFACTOR=""
           TEST=""
           CI=""
+          STYLE=""
           OTHER=""
 
           if [ -z "$PREVIOUS_TAG" ]; then
@@ -94,6 +95,9 @@ jobs:
               ci:*|ci\(*)
                 CI="${CI}- ${commit#ci*: }\n"
                 ;;
+              style:*|style\(*)
+                STYLE="${STYLE}- ${commit#style*: }\n"
+                ;;
               *)
                 OTHER="${OTHER}- ${commit}\n"
                 ;;
@@ -108,6 +112,7 @@ jobs:
           [ -n "$CI" ] && CHANGELOG="${CHANGELOG}### 🔄 CI/CD\n${CI}\n"
           [ -n "$TEST" ] && CHANGELOG="${CHANGELOG}### ✅ Testing\n${TEST}\n"
           [ -n "$DOCS" ] && CHANGELOG="${CHANGELOG}### 📝 Documentation\n${DOCS}\n"
+          [ -n "$STYLE" ] && CHANGELOG="${CHANGELOG}### 💅 Styling\n${STYLE}\n"
           [ -n "$CHORE" ] && CHANGELOG="${CHANGELOG}### 🔧 Maintenance\n${CHORE}\n"
           [ -n "$OTHER" ] && CHANGELOG="${CHANGELOG}### Other Changes\n${OTHER}\n"
 
