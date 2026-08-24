@@ -1,4 +1,4 @@
-# go-streams v2
+# go-streams
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/coldsmirk/go-streams/v2.svg)](https://pkg.go.dev/github.com/coldsmirk/go-streams/v2)
 [![Go Report Card](https://goreportcard.com/badge/github.com/coldsmirk/go-streams/v2)](https://goreportcard.com/report/github.com/coldsmirk/go-streams/v2)
