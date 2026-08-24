@@ -32,14 +32,14 @@ A lazy, type-safe stream processing library for Go 1.25+, built on `iter.Seq` an
 
 - Constructors & Interop: Streams, Ranges, Generators → see Streams: Constructors and Interop
 - Stream[T] (lazy): Filter, Map, Peek, Limit/Skip, Take/DropWhile, Step, TakeLast/DropLast, Intersperse
-- Type‑changing: MapTo, FlatMap, Flatten, Zip/Zip3/ZipWithIndex, Distinct*, Window/Chunk, Interleave, Pairwise/Triples
+- Type-changing: MapTo, FlatMap, Flatten, Zip/Zip3/ZipWithIndex, Distinct*, Window/Chunk, Interleave, Pairwise/Triples
 - Specialized: MergeSorted*, Cartesian/Cross/Combinations/Permutations
 - Terminals: Collect, Reduce/Fold, Count/First/Last/Find*, Any/All/NoneMatch, Min/Max, At/Nth, Single, IsEmpty
 - Parallel: ParallelMap/Filter/FlatMap/Reduce/ForEach/Collect, Prefetch, options WithConcurrency/Ordered/BufferSize/ChunkSize
-- Context‑Aware: WithContext/WithContext2, Generate/Iterate/Range/FromChannel/FromReaderLines Ctx variants, Collect/ForEach/Reduce Ctx variants, Parallel*Ctx
+- Context-Aware: WithContext/WithContext2, Generate/Iterate/Range/FromChannel/FromReaderLines Ctx variants, Collect/ForEach/Reduce Ctx variants, Parallel*Ctx
 - Resource Management: Using (try-with-resources)
 - IO: FromReaderLines/Scanner/String/Bytes/Runes, FromCSV/TSV/WithHeader (+Err), ToWriter/ToFile/ToCSV(+File)
-- Time‑Based: WithTimestamp, Tumbling/Sliding/Session windows, Throttle/RateLimit/Debounce/Sample/Delay/Timeout, Interval/Timer
+- Time-Based: WithTimestamp, Tumbling/Sliding/Session windows, Throttle/RateLimit/Debounce/Sample/Delay/Timeout, Interval/Timer
 - Stream2: Keys/Values/ToPairs/Reduce/DistinctKeys/Values, MapKeys/Values/Pairs, MapToPairs, ReduceByKey/GroupValues/ToMap2
 - Joins: Inner/Left/Right/Full, LeftJoinWith/RightJoinWith, CoGroup, JoinBy/LeftJoinBy, Semi/Anti (and *By)
 - Numeric/Stats: Sum/Average/Min/Max/MinMax/Product/RunningSum/Differences/etc, GetStatistics
@@ -811,7 +811,7 @@ Conventions used below:
 - Lazy: operation produces output on demand; memory is bounded by the operator, not by total input
 - Eager: operation collects the whole input first (O(n) memory)
 - Ordering: whether original order is preserved
-- Cancellation: whether a `context.Context` can short‑circuit production/consumption
+- Cancellation: whether a `context.Context` can short-circuit production/consumption
 
 ### Parameter Glossary
 
@@ -944,7 +944,7 @@ stable := src.SortedStable(func(a,b int) int { return a-b }).Collect()
 withDots := streams.Of("a","b","c").Intersperse(".").Collect() // ["a" "." "b" "." "c"]
 ```
 
-### Stream[T]: Free Transformations (Type‑Changing, Lazy)
+### Stream[T]: Free Transformations (Type-Changing, Lazy)
 
 ```go
 // Map / flatMap including iter.Seq interop
@@ -1174,12 +1174,12 @@ func ParallelCollect[T any](s Stream[T], opts ...ParallelOption) []T // order no
 
 Behavior and tuning:
 - Ordered vs unordered:
-  - Ordered (default) preserves input order; out‑of‑order results are buffered until they can be yielded.
+  - Ordered (default) preserves input order; out-of-order results are buffered until they can be yielded.
   - Unordered (`WithOrdered(false)`) yields ASAP; no reordering buffer.
 - ParallelFlatMap ordered mode:
-  - Sub‑streams are collected to preserve order (bounded per sub‑stream, not globally).
-  - Streaming mode (default): may buffer many out‑of‑order sub‑results; use when sub‑streams are small/medium.
-  - Chunked reordering (`WithChunkSize(n)`): processes inputs in chunks of size n with a semaphore; bounds memory to O(n × avg sub‑stream size). `n=1` minimizes memory but lowers utilization.
+  - Sub-streams are collected to preserve order (bounded per sub-stream, not globally).
+  - Streaming mode (default): may buffer many out-of-order sub-results; use when sub-streams are small/medium.
+  - Chunked reordering (`WithChunkSize(n)`): processes inputs in chunks of size n with a semaphore; bounds memory to O(n × avg sub-stream size). `n=1` minimizes memory but lowers utilization.
 - Early termination: downstream stop triggers cooperative cancellation and draining; goroutines are not leaked.
 - Start tuning with `WithConcurrency(GOMAXPROCS)` and `WithChunkSize(2-4× concurrency)` for ordered flatMap, then profile.
 
@@ -1209,7 +1209,7 @@ pref := streams.Prefetch(streams.Range(1,5), 2).Collect()
 sum := streams.ParallelReduce(streams.Range(1,1000), 0, func(a,b int) int { return a+b })
 ```
 
-### Context‑Aware APIs
+### Context-Aware APIs
 
 Wrappers and constructors:
 ```go
@@ -1315,7 +1315,7 @@ func (r CSVRecord) GetOr(field, defaultVal string) string
 ```
 
 Notes:
-- Non‑Err variants stop on the first parse error (fail‑fast).
+- Non-Err variants stop on the first parse error (fail-fast).
 - Err variants emit `Result[T]` so pipelines can handle or skip bad rows.
 - `FromFileLines`/`FromCSVFile` return closers; always call `Close()` (use `defer`).
 
@@ -1338,7 +1338,7 @@ var sb strings.Builder
 _ = streams.ToWriter(streams.Of(1,2,3), &sb, func(v int) string { return strconv.Itoa(v) })
 ```
 
-### Time‑Based Operators
+### Time-Based Operators
 
 ```go
 // Timestamp decoration
@@ -1361,13 +1361,13 @@ func Delay[T any](s Stream[T], d time.Duration) Stream[T]
 func DelayCtx[T any](ctx context.Context, s Stream[T], d time.Duration) Stream[T]
 func Timeout[T any](ctx context.Context, s Stream[T], d time.Duration) Stream[Result[T]]
 
-// Interval and one‑shot
+// Interval and one-shot
 func Interval(ctx context.Context, interval time.Duration) Stream[int]              // 0,1,2,...
 func Timer[T any](ctx context.Context, duration time.Duration, value T) Stream[T]   // single value
 ```
 
 Behavior notes:
-- Windows use wall‑clock arrival time. Tumbling emits non‑overlapping buckets; Sliding emits at `slide` cadence and keeps elements within the last `windowSize`; Session splits when no arrival within `gap`.
+- Windows use wall-clock arrival time. Tumbling emits non-overlapping buckets; Sliding emits at `slide` cadence and keeps elements within the last `windowSize`; Session splits when no arrival within `gap`.
 - Debounce emits the last value after a quiet period; Sample emits the latest value on each tick.
 - Timeout yields `Err(context.DeadlineExceeded)` if no element arrives in `d`; resets on each element.
 - All ctx operators drain timers safely (stop+drain) to avoid spurious wakeups.
@@ -1387,7 +1387,7 @@ rl   := streams.RateLimit(streams.Range(1,5), 2, 5*time.Millisecond).Collect()
 deb := streams.Debounce(ctx, streams.Of(1,2,3), 1*time.Millisecond).Collect() // emits last value
 ```
 
-### Stream2[K,V] (Key‑Value Streams)
+### Stream2[K,V] (Key-Value Streams)
 
 Constructors and interop:
 ```go
@@ -1482,7 +1482,7 @@ func AntiJoinBy[T,U any, K comparable](s1 Stream[T], s2 Stream[U], keyT func(T) 
 ```
 
 Notes:
-- Joins build in‑memory lookups (maps) of one/both inputs; ensure inputs are bounded.
+- Joins build in-memory lookups (maps) of one/both inputs; ensure inputs are bounded.
 
 Examples:
 ```go
@@ -1610,7 +1610,7 @@ median := streams.Median(streams.Of(1,3,2), func(a,b int) bool { return a<b }).G
 freq := streams.Frequency(streams.Of("a","b","a")) // map[string]int{"a":2,"b":1}
 ```
 
-### Result[T] Pipeline (Error‑Aware Streams)
+### Result[T] Pipeline (Error-Aware Streams)
 
 ```go
 // Result primitives
@@ -1635,7 +1635,7 @@ func (r Result[T]) Or(other Result[T]) Result[T]
 func MapResultTo[T,U any](r Result[T], fn func(T) U) Result[U]
 func FlatMapResult[T,U any](r Result[T], fn func(T) Result[U]) Result[U]
 
-// Error‑aware stream ops
+// Error-aware stream ops
 func MapErrTo[T,U any](s Stream[T], fn func(T) (U, error)) Stream[Result[U]]
 func FilterErr[T any](s Stream[T], pred func(T) (bool, error)) Stream[Result[T]]
 func FlatMapErr[T,U any](s Stream[T], fn func(T) (Stream[U], error)) Stream[Result[U]]
@@ -1828,9 +1828,9 @@ set1.Equals(set2)          // false
 ### Practical Guidance
 
 - Prefer lazy operators to keep memory bounded; be mindful of eager ones noted above.
-- For very large sub‑streams with `ParallelFlatMap` and ordered output, prefer `WithChunkSize` or `WithOrdered(false)` to bound memory.
-- When joining or doing Cartesian/combinatorics, inputs are collected; validate sizes or pre‑filter.
-- Use `ctx` variants in long‑running or IO/timer pipelines to support cancellation and timeouts cleanly.
+- For very large sub-streams with `ParallelFlatMap` and ordered output, prefer `WithChunkSize` or `WithOrdered(false)` to bound memory.
+- When joining or doing Cartesian/combinatorics, inputs are collected; validate sizes or pre-filter.
+- Use `ctx` variants in long-running or IO/timer pipelines to support cancellation and timeouts cleanly.
 
 ---
 
