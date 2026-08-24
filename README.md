@@ -786,13 +786,12 @@ Understanding how operations behave with edge-case inputs:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+v1 is in maintenance: it takes bug fixes and security fixes, not new features.
+New work goes to v2 on the
+[main branch](https://github.com/coldsmirk/go-streams).
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Fixes are welcome as pull requests against the `v1` branch. `task check` runs
+the formatter, `go vet`, the linter and the tests.
 
 ## License
 
@@ -801,7 +800,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Inspired by Java Stream API and Rust Iterator
-- Built on Go 1.23's `iter.Seq` and `iter.Seq2`
+- Built on the standard library's `iter.Seq` and `iter.Seq2`
 
 ## API Reference
 
