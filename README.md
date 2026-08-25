@@ -263,7 +263,7 @@ on an earlier toolchain.
 Issues and pull requests are welcome. `task check` runs the formatter, `go vet`,
 the linter and the tests — the same set CI runs, plus the `modernize` analyzer.
 
-Two conventions this package holds to:
+Three conventions this package holds to:
 
 - **Every operation gets an early-termination test.** The `iter` contract panics
   if `yield` is called after it returns false, so stopping correctly is a
@@ -271,6 +271,10 @@ Two conventions this package holds to:
 - **Examples are runnable.** They belong in `example_test.go` as `Example`
   functions with an `// Output:` block, not in this file, so that the compiler
   and CI check them.
+- **Assertions use `testify`.** `assert` for a check the test should survive,
+  `require` for one it cannot continue past. An expected empty slice is
+  `assert.Empty`, never `assert.Equal` against `nil`. `AGENTS.md` carries the
+  rest.
 
 ## Acknowledgments
 
