@@ -116,6 +116,22 @@ func (s Stream2[K, V]) Take(n int) Stream2[K, V] {
 	}
 }
 
+// Drop returns a Stream2 omitting the first n pairs.
+func (s Stream2[K, V]) Drop(n int) Stream2[K, V] {
+	return func(yield func(K, V) bool) {
+		dropped := 0
+		for k, v := range s {
+			if dropped < n {
+				dropped++
+				continue
+			}
+			if !yield(k, v) {
+				return
+			}
+		}
+	}
+}
+
 // --- terminal operations ---
 
 // ForEach calls fn for each pair.
@@ -141,4 +157,10 @@ func (s Stream2[K, V]) Fold[A any](init A, fn func(A, K, V) A) A {
 		acc = fn(acc, k, v)
 	}
 	return acc
+}
+
+// CollectMap returns a map of the pairs of s. A later pair overwrites an
+// earlier one with the same key. It is the counterpart of [Pairs].
+func CollectMap[K comparable, V any](s Stream2[K, V]) map[K]V {
+	return maps.Collect(iter.Seq2[K, V](s))
 }

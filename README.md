@@ -109,7 +109,7 @@ Full documentation and runnable examples:
 `Flatten`, `Concat`, `Merge`, `Interleave`, `Cycle`, `TryMap`, `Ok`, `Try`
 
 **Stream2** — `Keys`, `Values`, `Filter`, `MapKeys`, `MapValues`, `Collapse`,
-`Swap`, `Take`, `ForEach`, `Count`, `Fold`
+`Swap`, `Take`, `Drop`, `ForEach`, `Count`, `Fold`, `CollectMap`
 
 **Parallel** — `ParallelMap`, `ParallelFilter`, `ParallelForEach`, configured
 with `WithConcurrency` and `Unordered`. Results keep their input order unless

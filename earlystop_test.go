@@ -109,6 +109,7 @@ func TestStream2OpsHonourEarlyStop(t *testing.T) {
 	breakAfterOne2(t, "Stream2.MapValues", src().MapValues(func(v int) int { return v }))
 	breakAfterOne2(t, "Stream2.Swap", src().Swap())
 	breakAfterOne2(t, "Stream2.Take", src().Take(3))
+	breakAfterOne2(t, "Stream2.Drop", src().Drop(1))
 	breakAfterOne2(t, "Pairs", Pairs(map[int]int{1: 1, 2: 2, 3: 3}))
 	breakAfterOne(t, "Stream2.Keys", src().Keys())
 	breakAfterOne(t, "Stream2.Values", src().Values())

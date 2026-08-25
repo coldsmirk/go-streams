@@ -25,6 +25,8 @@ func TestStream2Ops(t *testing.T) {
 	eq(t, "Swap", s().Swap().Keys().Collect(), []int{1, 2, 3})
 	eq(t, "Take", s().Take(2).Keys().Collect(), []string{"a", "b"})
 	eq(t, "Take 0", s().Take(0).Keys().Collect(), nil)
+	eq(t, "Drop", s().Drop(1).Keys().Collect(), []string{"b", "c"})
+	eq(t, "Drop all", s().Drop(5).Keys().Collect(), nil)
 
 	if got := s().Count(); got != 3 {
 		t.Errorf("Count = %d", got)
@@ -52,6 +54,10 @@ func TestPairsAndMapInterop(t *testing.T) {
 	back := maps.Collect(iter.Seq2[string, int](doubled))
 	if back["b"] != 4 || len(back) != 3 {
 		t.Errorf("round trip = %v", back)
+	}
+	// CollectMap performs the same conversion without naming the types
+	if got := CollectMap(Pairs(m).MapValues(func(v int) int { return v * 2 })); got["c"] != 6 || len(got) != 3 {
+		t.Errorf("CollectMap = %v", got)
 	}
 	// From2 infers K and V
 	if got := From2(maps.All(m)).Count(); got != 3 {
