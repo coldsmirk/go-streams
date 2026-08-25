@@ -3,6 +3,8 @@ package source
 import (
 	"bytes"
 	"errors"
+	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -123,4 +125,25 @@ func TestWriteCSVFileUncreatable(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "absent", "out.csv")
 	assert.Error(t, WriteCSVFile(path, streams.Of([]string{"a"})),
 		"WriteCSVFile into a missing directory = nil, want an error")
+}
+
+// WriteFile and WriteCSVFile both document that a close failure is reported
+// when writing itself succeeded. Only writeFile can honour that, and a close
+// only fails for a file already closed, so the write closes it.
+func TestWriteFileReportsACloseFailure(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "out.txt")
+	err := writeFile(path, func(w io.Writer) error {
+		if _, err := io.WriteString(w, "written before the close\n"); err != nil {
+			return err
+		}
+		// Closing here leaves writeFile's own Close to fail.
+		return w.(*os.File).Close()
+	})
+	require.ErrorIs(t, err, os.ErrClosed, "writeFile swallowed the close failure")
+
+	// The write itself still landed: the close error is reported, not substituted
+	// for the work.
+	content, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	assert.Equal(t, "written before the close\n", string(content), "writeFile content")
 }

@@ -193,6 +193,21 @@ func TestSampleDropsElementsBetweenIntervals(t *testing.T) {
 	assert.GreaterOrEqualf(t, got[2], 5, "Sample = %v, want the third sample to skip past the earlier elements", got)
 }
 
+// An interval in which no element arrived produces nothing rather than
+// repeating the previous element. The other Sample tests keep the source
+// faster than the interval, so none of them ever leaves one empty.
+func TestSampleSkipsIntervalsWithNoElement(t *testing.T) {
+	const interval = 50 * time.Millisecond
+	ctx, cancel := context.WithTimeout(t.Context(), 8*interval)
+	defer cancel()
+
+	// One element, then silence: the first interval samples it and the rest
+	// hold nothing.
+	got := Sample(ctx, quiet(), interval).Collect()
+
+	assert.Equal(t, []int{1}, got, "Sample over a source that goes quiet")
+}
+
 func TestTumblingGroupsByWindow(t *testing.T) {
 	ch := make(chan int)
 	cut := make(chan struct{})
@@ -221,6 +236,21 @@ func TestTumblingFlushesTheOpenWindow(t *testing.T) {
 	got := Tumbling(t.Context(), streams.Of(1, 2, 3), time.Second).Collect()
 	want := [][]int{{1, 2, 3}}
 	assert.Equal(t, want, got, "Tumbling")
+}
+
+// A window in which no element arrived is skipped rather than emitted empty.
+// Every other Tumbling test synchronises its source with the cut, so none of
+// them ever lets a window pass with nothing in it.
+func TestTumblingSkipsEmptyWindows(t *testing.T) {
+	const size = 50 * time.Millisecond
+	ctx, cancel := context.WithTimeout(t.Context(), 8*size)
+	defer cancel()
+
+	// One element, then silence for the remaining windows.
+	got := Tumbling(ctx, quiet(), size).Collect()
+
+	require.Lenf(t, got, 1, "Tumbling over a source that goes quiet = %v, want only the window holding the element", got)
+	assert.Equal(t, []int{1}, got[0], "Tumbling window")
 }
 
 func TestSlidingOverlapsAndExpires(t *testing.T) {
@@ -304,6 +334,11 @@ func TestTimeoutBoundsTheWholeIteration(t *testing.T) {
 	require.ErrorIs(t, err, context.DeadlineExceeded, "Timeout err")
 	atLeast := d - 10*time.Millisecond
 	assert.GreaterOrEqualf(t, elapsed, atLeast, "Timeout fired after %v, want at least %v", elapsed, atLeast)
+	// An upper bound as well, or a deadline off by an order of magnitude would
+	// satisfy the lower one just as happily. It is loose enough that only a
+	// mistake in the duration itself, not a slow scheduler, can reach it.
+	atMost := 5 * d
+	assert.LessOrEqualf(t, elapsed, atMost, "Timeout fired after %v, want at most %v", elapsed, atMost)
 }
 
 func TestTimeoutReportsCancellation(t *testing.T) {
@@ -357,6 +392,25 @@ func TestStampPairsEachElementWithItsTime(t *testing.T) {
 		if !assert.Falsef(t, times[i].Before(times[i-1]), "Stamp times = %v, want non-decreasing", times) {
 			break
 		}
+	}
+}
+
+// The times must follow the source rather than being read once. Every
+// assertion above holds just as well for a single timestamp shared by all
+// three elements, because Of produces them too fast to tell apart; a source
+// that pauses between elements is what separates the two.
+func TestStampFollowsTheSourceThroughTime(t *testing.T) {
+	const gap = 20 * time.Millisecond
+
+	var times []time.Time
+	for at := range Stamp(paced(gap)).Take(3) {
+		times = append(times, at)
+	}
+
+	require.Lenf(t, times, 3, "Stamp produced %d pairs, want 3", len(times))
+	for i := 1; i < len(times); i++ {
+		assert.GreaterOrEqualf(t, times[i].Sub(times[i-1]), gap/2,
+			"Stamp times = %v, want each one later than the last", times)
 	}
 }
 
