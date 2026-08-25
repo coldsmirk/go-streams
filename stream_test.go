@@ -208,6 +208,10 @@ func TestGroupingTerminals(t *testing.T) {
 	yes, no := Of(1, 2, 3, 4).Partition(func(i int) bool { return i%2 == 0 })
 	assert.Equal(t, []int{2, 4}, yes, "Partition yes")
 	assert.Equal(t, []int{1, 3}, no, "Partition no")
+
+	yes, no = Empty[int]().Partition(func(int) bool { return true })
+	assert.Empty(t, yes, "Partition yes over an empty Stream")
+	assert.Empty(t, no, "Partition no over an empty Stream")
 }
 
 // --- laziness ---

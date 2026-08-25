@@ -11,6 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// The expected value below, and in the two tests after it, is what the serial
+// operation produces: what these pin is that adding concurrency changes
+// nothing. A regression in Range or Map itself moves both sides at once and so
+// is invisible here on purpose — TestConstructors and TestIntermediateOps hold
+// those to literal values.
+
 func TestParallelMapPreservesOrder(t *testing.T) {
 	// Sleeping longer for earlier elements would expose any reordering.
 	got := Range(0, 20).ParallelMap(func(i int) int {
