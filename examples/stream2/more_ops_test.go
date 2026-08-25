@@ -23,16 +23,16 @@ func Example_stream2_iter_and_basicOps() {
 	// Filter/MapKeys/MapValues/Limit/Skip/Peek/TakeWhile/DropWhile
 	var peekSum int
 	out := s2.
-		Filter(func(k string, v int) bool { return v > 0 }).
+		Filter(func(_ string, v int) bool { return v > 0 }).
 		MapKeys(func(k string) string { return k + "!" }).
 		MapValues(func(v int) int { return v * 10 }).
-		Peek(func(k string, v int) { peekSum += v }).
-		TakeWhile(func(k string, v int) bool { return v <= 20 }).
+		Peek(func(_ string, v int) { peekSum += v }).
+		TakeWhile(func(_ string, v int) bool { return v <= 20 }).
 		ToPairs().Collect()
 	fmt.Println(len(out), peekSum)
 
 	// Reduce and First
-	r := s2.Reduce(streams.NewPair("", 0), func(acc streams.Pair[string, int], k string, v int) streams.Pair[string, int] {
+	r := s2.Reduce(streams.NewPair("", 0), func(acc streams.Pair[string, int], _ string, v int) streams.Pair[string, int] {
 		acc.Second += v
 		return acc
 	})

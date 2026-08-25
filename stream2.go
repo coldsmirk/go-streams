@@ -41,7 +41,7 @@ func PairsOf[K, V any](pairs ...Pair[K, V]) Stream2[K, V] {
 // Empty2 returns an empty Stream2.
 func Empty2[K, V any]() Stream2[K, V] {
 	return Stream2[K, V]{
-		seq: func(yield func(K, V) bool) {},
+		seq: func(_ func(K, V) bool) {},
 	}
 }
 

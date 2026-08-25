@@ -42,7 +42,7 @@ func Example_forEachCtxWithCancellation() {
 	})
 
 	var count int
-	err := streams.ForEachCtx(ctx, s, func(v int) error {
+	err := streams.ForEachCtx(ctx, s, func(_ int) error {
 		count++
 		fmt.Printf("Processed: %d\n", count)
 		return nil

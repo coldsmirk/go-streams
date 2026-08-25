@@ -248,7 +248,7 @@ func BenchmarkParallelFlatMap(b *testing.B) {
 	b.Run("Streaming_100x100", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = ParallelFlatMap(FromSlice(input), func(n int) Stream[int] {
+			_ = ParallelFlatMap(FromSlice(input), func(_ int) Stream[int] {
 				return Range(0, subStreamSize)
 			}, WithConcurrency(4), WithOrdered(true)).Collect()
 		}
@@ -257,7 +257,7 @@ func BenchmarkParallelFlatMap(b *testing.B) {
 	b.Run("Chunked_100x100_Chunk10", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = ParallelFlatMap(FromSlice(input), func(n int) Stream[int] {
+			_ = ParallelFlatMap(FromSlice(input), func(_ int) Stream[int] {
 				return Range(0, subStreamSize)
 			}, WithConcurrency(4), WithOrdered(true), WithChunkSize(10)).Collect()
 		}
@@ -266,7 +266,7 @@ func BenchmarkParallelFlatMap(b *testing.B) {
 	b.Run("Chunked_100x100_Chunk25", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = ParallelFlatMap(FromSlice(input), func(n int) Stream[int] {
+			_ = ParallelFlatMap(FromSlice(input), func(_ int) Stream[int] {
 				return Range(0, subStreamSize)
 			}, WithConcurrency(4), WithOrdered(true), WithChunkSize(25)).Collect()
 		}
@@ -275,7 +275,7 @@ func BenchmarkParallelFlatMap(b *testing.B) {
 	b.Run("Chunked_100x100_Chunk50", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			_ = ParallelFlatMap(FromSlice(input), func(n int) Stream[int] {
+			_ = ParallelFlatMap(FromSlice(input), func(_ int) Stream[int] {
 				return Range(0, subStreamSize)
 			}, WithConcurrency(4), WithOrdered(true), WithChunkSize(50)).Collect()
 		}
@@ -288,7 +288,7 @@ func BenchmarkParallelFlatMap(b *testing.B) {
 		b.ReportAllocs()
 		smallInput := Range(0, 50).Collect()
 		for b.Loop() {
-			_ = ParallelFlatMap(FromSlice(smallInput), func(n int) Stream[int] {
+			_ = ParallelFlatMap(FromSlice(smallInput), func(_ int) Stream[int] {
 				return Range(0, largeSubStreamSize)
 			}, WithConcurrency(4), WithOrdered(true)).Collect()
 		}
@@ -298,7 +298,7 @@ func BenchmarkParallelFlatMap(b *testing.B) {
 		b.ReportAllocs()
 		smallInput := Range(0, 50).Collect()
 		for b.Loop() {
-			_ = ParallelFlatMap(FromSlice(smallInput), func(n int) Stream[int] {
+			_ = ParallelFlatMap(FromSlice(smallInput), func(_ int) Stream[int] {
 				return Range(0, largeSubStreamSize)
 			}, WithConcurrency(4), WithOrdered(true), WithChunkSize(10)).Collect()
 		}

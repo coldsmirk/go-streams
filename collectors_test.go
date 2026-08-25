@@ -102,16 +102,16 @@ func TestCollectors(t *testing.T) {
 	t.Run("ToMapCollector", func(t *testing.T) {
 		t.Parallel()
 		type Person struct {
-			Id   int
+			ID   int
 			Name string
 		}
 		people := []Person{
-			{Id: 1, Name: "Alice"},
-			{Id: 2, Name: "Bob"},
+			{ID: 1, Name: "Alice"},
+			{ID: 2, Name: "Bob"},
 		}
 
 		result := CollectTo(FromSlice(people), ToMapCollector(
-			func(p Person) (int, string) { return p.Id, p.Name },
+			func(p Person) (int, string) { return p.ID, p.Name },
 		))
 
 		assert.Equal(t, "Alice", result[1], "ToMapCollector should create map")

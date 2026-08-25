@@ -188,38 +188,38 @@ func Contains[T comparable](s Stream[T], target T) bool {
 
 // Min returns the minimum element using the comparison function.
 func (s Stream[T]) Min(cmp func(T, T) int) Optional[T] {
-	var min T
+	var smallest T
 	first := true
 	for v := range s.seq {
 		if first {
-			min = v
+			smallest = v
 			first = false
-		} else if cmp(v, min) < 0 {
-			min = v
+		} else if cmp(v, smallest) < 0 {
+			smallest = v
 		}
 	}
 	if first {
 		return None[T]()
 	}
-	return Some(min)
+	return Some(smallest)
 }
 
 // Max returns the maximum element using the comparison function.
 func (s Stream[T]) Max(cmp func(T, T) int) Optional[T] {
-	var max T
+	var largest T
 	first := true
 	for v := range s.seq {
 		if first {
-			max = v
+			largest = v
 			first = false
-		} else if cmp(v, max) > 0 {
-			max = v
+		} else if cmp(v, largest) > 0 {
+			largest = v
 		}
 	}
 	if first {
 		return None[T]()
 	}
-	return Some(max)
+	return Some(largest)
 }
 
 // --- Free Functions for terminal operations with type transformation ---

@@ -66,11 +66,11 @@ func TestOptional(t *testing.T) {
 	t.Run("IfPresent", func(t *testing.T) {
 		t.Parallel()
 		var called bool
-		Some(42).IfPresent(func(v int) { called = true })
+		Some(42).IfPresent(func(_ int) { called = true })
 		assert.True(t, called, "IfPresent should call action on Some")
 
 		called = false
-		None[int]().IfPresent(func(v int) { called = true })
+		None[int]().IfPresent(func(_ int) { called = true })
 		assert.False(t, called, "IfPresent should not call action on None")
 	})
 
@@ -79,7 +79,7 @@ func TestOptional(t *testing.T) {
 		var presentCalled, emptyCalled bool
 
 		Some(42).IfPresentOrElse(
-			func(v int) { presentCalled = true },
+			func(_ int) { presentCalled = true },
 			func() { emptyCalled = true },
 		)
 		assert.True(t, presentCalled, "IfPresentOrElse should call present action on Some")
@@ -88,7 +88,7 @@ func TestOptional(t *testing.T) {
 		presentCalled = false
 		emptyCalled = false
 		None[int]().IfPresentOrElse(
-			func(v int) { presentCalled = true },
+			func(_ int) { presentCalled = true },
 			func() { emptyCalled = true },
 		)
 		assert.False(t, presentCalled, "IfPresentOrElse should not call present action on None")
@@ -105,7 +105,7 @@ func TestOptional(t *testing.T) {
 		assert.True(t, notFiltered.IsEmpty(), "Filter should remove non-matching value")
 
 		none := None[int]()
-		noneFiltered := none.Filter(func(v int) bool { return true })
+		noneFiltered := none.Filter(func(_ int) bool { return true })
 		assert.True(t, noneFiltered.IsEmpty(), "Filter on None should remain None")
 	})
 
@@ -234,7 +234,7 @@ func TestOptionalMap(t *testing.T) {
 	t.Run("MapToString", func(t *testing.T) {
 		t.Parallel()
 		some := Some(42)
-		mapped := OptionalMap(some, func(v int) string {
+		mapped := OptionalMap(some, func(_ int) string {
 			return "value"
 		})
 		assert.True(t, mapped.IsPresent(), "OptionalMap should preserve presence")
@@ -244,7 +244,7 @@ func TestOptionalMap(t *testing.T) {
 	t.Run("MapNone", func(t *testing.T) {
 		t.Parallel()
 		none := None[int]()
-		mapped := OptionalMap(none, func(v int) string {
+		mapped := OptionalMap(none, func(_ int) string {
 			return "value"
 		})
 		assert.True(t, mapped.IsEmpty(), "OptionalMap on None should remain None")
@@ -257,7 +257,7 @@ func TestOptionalFlatMap(t *testing.T) {
 	t.Run("FlatMapSome", func(t *testing.T) {
 		t.Parallel()
 		some := Some(42)
-		result := OptionalFlatMap(some, func(v int) Optional[string] {
+		result := OptionalFlatMap(some, func(_ int) Optional[string] {
 			return Some("value")
 		})
 		assert.True(t, result.IsPresent(), "OptionalFlatMap Some->Some should be present")
@@ -267,7 +267,7 @@ func TestOptionalFlatMap(t *testing.T) {
 	t.Run("FlatMapSomeToNone", func(t *testing.T) {
 		t.Parallel()
 		some := Some(42)
-		result := OptionalFlatMap(some, func(v int) Optional[string] {
+		result := OptionalFlatMap(some, func(_ int) Optional[string] {
 			return None[string]()
 		})
 		assert.True(t, result.IsEmpty(), "OptionalFlatMap Some->None should be empty")
@@ -276,7 +276,7 @@ func TestOptionalFlatMap(t *testing.T) {
 	t.Run("FlatMapNone", func(t *testing.T) {
 		t.Parallel()
 		none := None[int]()
-		result := OptionalFlatMap(none, func(v int) Optional[string] {
+		result := OptionalFlatMap(none, func(_ int) Optional[string] {
 			return Some("value")
 		})
 		assert.True(t, result.IsEmpty(), "OptionalFlatMap None should remain None")

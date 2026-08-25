@@ -66,14 +66,12 @@ func LeftJoin[K comparable, V1, V2 any](s1 Stream2[K, V1], s2 Stream2[K, V2]) St
 							return
 						}
 					}
-				} else {
-					if !yield(JoinResultOptional[K, V1, V2]{
-						Key:   k,
-						Left:  Some(v1),
-						Right: None[V2](),
-					}) {
-						return
-					}
+				} else if !yield(JoinResultOptional[K, V1, V2]{
+					Key:   k,
+					Left:  Some(v1),
+					Right: None[V2](),
+				}) {
+					return
 				}
 			}
 		},
@@ -104,14 +102,12 @@ func RightJoin[K comparable, V1, V2 any](s1 Stream2[K, V1], s2 Stream2[K, V2]) S
 							return
 						}
 					}
-				} else {
-					if !yield(JoinResultOptional[K, V1, V2]{
-						Key:   k,
-						Left:  None[V1](),
-						Right: Some(v2),
-					}) {
-						return
-					}
+				} else if !yield(JoinResultOptional[K, V1, V2]{
+					Key:   k,
+					Left:  None[V1](),
+					Right: Some(v2),
+				}) {
+					return
 				}
 			}
 		},
@@ -202,10 +198,8 @@ func LeftJoinWith[K comparable, V1, V2 any](s1 Stream2[K, V1], s2 Stream2[K, V2]
 							return
 						}
 					}
-				} else {
-					if !yield(JoinResult[K, V1, V2]{Key: k, Left: v1, Right: defaultV2}) {
-						return
-					}
+				} else if !yield(JoinResult[K, V1, V2]{Key: k, Left: v1, Right: defaultV2}) {
+					return
 				}
 			}
 		},
@@ -228,10 +222,8 @@ func RightJoinWith[K comparable, V1, V2 any](s1 Stream2[K, V1], s2 Stream2[K, V2
 							return
 						}
 					}
-				} else {
-					if !yield(JoinResult[K, V1, V2]{Key: k, Left: defaultV1, Right: v2}) {
-						return
-					}
+				} else if !yield(JoinResult[K, V1, V2]{Key: k, Left: defaultV1, Right: v2}) {
+					return
 				}
 			}
 		},
@@ -332,10 +324,8 @@ func LeftJoinBy[T, U any, K comparable](s1 Stream[T], s2 Stream[U], keyT func(T)
 							return
 						}
 					}
-				} else {
-					if !yield(Pair[T, Optional[U]]{First: t, Second: None[U]()}) {
-						return
-					}
+				} else if !yield(Pair[T, Optional[U]]{First: t, Second: None[U]()}) {
+					return
 				}
 			}
 		},

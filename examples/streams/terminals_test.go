@@ -55,7 +55,7 @@ func Example_terminals_index_and_more() {
 	fmt.Println(streams.Contains(streams.Of("a", "b"), "b"))
 	fmt.Println(streams.ToMap(streams.Of("a", "bb"), func(s string) (string, int) { return s, len(s) })["bb"])
 	fmt.Println(streams.AssociateBy(streams.Of("a", "bb"), func(s string) int { return len(s) })[2])
-	fmt.Println(streams.IndexBy(streams.Of("a", "bb"), func(s string) string { return strings.ToUpper(s) })["BB"]) // value for key "BB"
+	fmt.Println(streams.IndexBy(streams.Of("a", "bb"), strings.ToUpper)["BB"]) // value for key "BB"
 	fmt.Println(streams.CountBy(streams.Of("a", "aa"), func(s string) int { return len(s) })[2])
 	fmt.Println(streams.Frequencies(streams.Of(1, 1, 2))[1])
 	// Output:

@@ -16,7 +16,7 @@ func Example_optional_more() {
 	// IfPresent / IfPresentOrElse / GetOrElseGet
 	sum := 0
 	o.IfPresent(func(x int) { sum += x })
-	o3.IfPresentOrElse(func(_ int) { sum += 100 }, func() { sum += 1 })
+	o3.IfPresentOrElse(func(_ int) { sum += 100 }, func() { sum++ })
 	def := streams.Some(0).GetOrElseGet(func() int { return 42 })
 	fmt.Println(sum, def)
 	// ToSlice / ToPointer / ToStream / OptionalEquals

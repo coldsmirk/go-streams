@@ -11,7 +11,7 @@ import (
 func Example_mapTo_flatMap_zip() {
 	src := streams.FromSlice([]string{"go", "stream"})
 	upper := streams.MapTo(src, strings.ToUpper).Collect()
-	runes := streams.FlatMap(src, func(s string) streams.Stream[rune] { return streams.FromRunes(s) }).Collect()
+	runes := streams.FlatMap(src, streams.FromRunes).Collect()
 	zip := streams.Zip(streams.Of("a", "b"), streams.Of(1, 2, 3)).Collect()
 	fmt.Println(upper)
 	fmt.Println(len(runes) > 0, len(zip)) // zip ends with shorter input

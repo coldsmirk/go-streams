@@ -58,64 +58,64 @@ func Average[T Numeric](s Stream[T]) Optional[float64] {
 // MinValue returns the minimum value from a stream of ordered elements.
 // Returns None for an empty stream.
 func MinValue[T cmp.Ordered](s Stream[T]) Optional[T] {
-	var min T
+	var smallest T
 	first := true
 	for v := range s.seq {
 		if first {
-			min = v
+			smallest = v
 			first = false
-		} else if v < min {
-			min = v
+		} else if v < smallest {
+			smallest = v
 		}
 	}
 	if first {
 		return None[T]()
 	}
-	return Some(min)
+	return Some(smallest)
 }
 
 // MaxValue returns the maximum value from a stream of ordered elements.
 // Returns None for an empty stream.
 func MaxValue[T cmp.Ordered](s Stream[T]) Optional[T] {
-	var max T
+	var largest T
 	first := true
 	for v := range s.seq {
 		if first {
-			max = v
+			largest = v
 			first = false
-		} else if v > max {
-			max = v
+		} else if v > largest {
+			largest = v
 		}
 	}
 	if first {
 		return None[T]()
 	}
-	return Some(max)
+	return Some(largest)
 }
 
 // MinMax returns both the minimum and maximum values.
 // Returns None for an empty stream.
 func MinMax[T cmp.Ordered](s Stream[T]) Optional[Pair[T, T]] {
-	var min, max T
+	var smallest, largest T
 	first := true
 	for v := range s.seq {
 		if first {
-			min = v
-			max = v
+			smallest = v
+			largest = v
 			first = false
 		} else {
-			if v < min {
-				min = v
+			if v < smallest {
+				smallest = v
 			}
-			if v > max {
-				max = v
+			if v > largest {
+				largest = v
 			}
 		}
 	}
 	if first {
 		return None[Pair[T, T]]()
 	}
-	return Some(Pair[T, T]{First: min, Second: max})
+	return Some(Pair[T, T]{First: smallest, Second: largest})
 }
 
 // Product returns the product of all numeric elements.
@@ -207,7 +207,7 @@ type Statistics[T Numeric] struct {
 // GetStatistics computes basic statistics for a numeric stream.
 // Returns None for an empty stream.
 func GetStatistics[T Numeric](s Stream[T]) Optional[Statistics[T]] {
-	var sum, min, max T
+	var sum, smallest, largest T
 	count := 0
 	first := true
 
@@ -215,15 +215,15 @@ func GetStatistics[T Numeric](s Stream[T]) Optional[Statistics[T]] {
 		sum += v
 		count++
 		if first {
-			min = v
-			max = v
+			smallest = v
+			largest = v
 			first = false
 		} else {
-			if v < min {
-				min = v
+			if v < smallest {
+				smallest = v
 			}
-			if v > max {
-				max = v
+			if v > largest {
+				largest = v
 			}
 		}
 	}
@@ -235,8 +235,8 @@ func GetStatistics[T Numeric](s Stream[T]) Optional[Statistics[T]] {
 	return Some(Statistics[T]{
 		Count:   count,
 		Sum:     sum,
-		Min:     min,
-		Max:     max,
+		Min:     smallest,
+		Max:     largest,
 		Average: float64(sum) / float64(count),
 	})
 }

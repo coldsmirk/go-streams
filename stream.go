@@ -133,7 +133,7 @@ func Concat[T any](streams ...Stream[T]) Stream[T] {
 // Empty returns an empty Stream.
 func Empty[T any]() Stream[T] {
 	return Stream[T]{
-		seq: func(yield func(T) bool) {},
+		seq: func(_ func(T) bool) {},
 	}
 }
 

@@ -144,7 +144,7 @@ func FlatMapResult[T, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 
 // --- Error-Aware Stream Operations ---
 
-// MapErr transforms each element using a function that may return an error.
+// MapErrTo transforms each element using a function that may return an error.
 // The resulting stream contains Result values.
 func MapErrTo[T, U any](s Stream[T], fn func(T) (U, error)) Stream[Result[U]] {
 	return Stream[Result[U]]{

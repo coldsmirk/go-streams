@@ -63,7 +63,7 @@ func TestTerminators(t *testing.T) {
 
 		t.Run("Empty", func(t *testing.T) {
 			t.Parallel()
-			err := Empty[int]().ForEachErr(func(n int) error {
+			err := Empty[int]().ForEachErr(func(_ int) error {
 				return assert.AnError
 			})
 			assert.NoError(t, err, "ForEachErr on empty stream should return nil")
@@ -91,7 +91,7 @@ func TestTerminators(t *testing.T) {
 			t.Parallel()
 			var indices []int
 			expectedErr := assert.AnError
-			err := Of("a", "b", "c", "d").ForEachIndexedErr(func(i int, s string) error {
+			err := Of("a", "b", "c", "d").ForEachIndexedErr(func(i int, _ string) error {
 				if i == 2 {
 					return expectedErr
 				}
@@ -104,7 +104,7 @@ func TestTerminators(t *testing.T) {
 
 		t.Run("Empty", func(t *testing.T) {
 			t.Parallel()
-			err := Empty[string]().ForEachIndexedErr(func(i int, s string) error {
+			err := Empty[string]().ForEachIndexedErr(func(_ int, _ string) error {
 				return assert.AnError
 			})
 			assert.NoError(t, err, "ForEachIndexedErr on empty stream should return nil")
@@ -202,21 +202,21 @@ func TestTerminators(t *testing.T) {
 		t.Parallel()
 		assert.True(t, Of(1, 2, 3).AnyMatch(func(n int) bool { return n == 2 }), "AnyMatch should find match")
 		assert.False(t, Of(1, 2, 3).AnyMatch(func(n int) bool { return n == 5 }), "AnyMatch should return false when no match")
-		assert.False(t, Empty[int]().AnyMatch(func(n int) bool { return true }), "AnyMatch on empty should be false")
+		assert.False(t, Empty[int]().AnyMatch(func(_ int) bool { return true }), "AnyMatch on empty should be false")
 	})
 
 	t.Run("AllMatch", func(t *testing.T) {
 		t.Parallel()
 		assert.True(t, Of(2, 4, 6).AllMatch(func(n int) bool { return n%2 == 0 }), "AllMatch should be true when all match")
 		assert.False(t, Of(2, 3, 6).AllMatch(func(n int) bool { return n%2 == 0 }), "AllMatch should be false when one doesn't match")
-		assert.True(t, Empty[int]().AllMatch(func(n int) bool { return false }), "AllMatch on empty should be true")
+		assert.True(t, Empty[int]().AllMatch(func(_ int) bool { return false }), "AllMatch on empty should be true")
 	})
 
 	t.Run("NoneMatch", func(t *testing.T) {
 		t.Parallel()
 		assert.True(t, Of(1, 3, 5).NoneMatch(func(n int) bool { return n%2 == 0 }), "NoneMatch should be true when none match")
 		assert.False(t, Of(1, 2, 3).NoneMatch(func(n int) bool { return n == 2 }), "NoneMatch should be false when one matches")
-		assert.True(t, Empty[int]().NoneMatch(func(n int) bool { return true }), "NoneMatch on empty should be true")
+		assert.True(t, Empty[int]().NoneMatch(func(_ int) bool { return true }), "NoneMatch on empty should be true")
 	})
 
 	t.Run("Contains", func(t *testing.T) {
@@ -227,9 +227,9 @@ func TestTerminators(t *testing.T) {
 
 	t.Run("Min", func(t *testing.T) {
 		t.Parallel()
-		min := Of(3, 1, 4, 1, 5).Min(func(a, b int) int { return a - b })
-		assert.True(t, min.IsPresent(), "Min should return Some for non-empty")
-		assert.Equal(t, 1, min.Get(), "Min should return minimum element")
+		smallest := Of(3, 1, 4, 1, 5).Min(func(a, b int) int { return a - b })
+		assert.True(t, smallest.IsPresent(), "Min should return Some for non-empty")
+		assert.Equal(t, 1, smallest.Get(), "Min should return minimum element")
 
 		emptyMin := Empty[int]().Min(func(a, b int) int { return a - b })
 		assert.True(t, emptyMin.IsEmpty(), "Min on empty should return None")
@@ -237,9 +237,9 @@ func TestTerminators(t *testing.T) {
 
 	t.Run("Max", func(t *testing.T) {
 		t.Parallel()
-		max := Of(3, 1, 4, 1, 5).Max(func(a, b int) int { return a - b })
-		assert.True(t, max.IsPresent(), "Max should return Some for non-empty")
-		assert.Equal(t, 5, max.Get(), "Max should return maximum element")
+		largest := Of(3, 1, 4, 1, 5).Max(func(a, b int) int { return a - b })
+		assert.True(t, largest.IsPresent(), "Max should return Some for non-empty")
+		assert.Equal(t, 5, largest.Get(), "Max should return maximum element")
 
 		emptyMax := Empty[int]().Max(func(a, b int) int { return a - b })
 		assert.True(t, emptyMax.IsEmpty(), "Max on empty should return None")
@@ -306,16 +306,16 @@ func TestFoldTo(t *testing.T) {
 func TestToMap(t *testing.T) {
 	t.Parallel()
 	type Person struct {
-		Id   int
+		ID   int
 		Name string
 	}
 	people := []Person{
-		{Id: 1, Name: "Alice"},
-		{Id: 2, Name: "Bob"},
+		{ID: 1, Name: "Alice"},
+		{ID: 2, Name: "Bob"},
 	}
 
 	result := ToMap(FromSlice(people), func(p Person) (int, string) {
-		return p.Id, p.Name
+		return p.ID, p.Name
 	})
 
 	assert.Equal(t, "Alice", result[1], "ToMap should create map with key function")
@@ -418,16 +418,16 @@ func TestAssociate(t *testing.T) {
 	t.Run("IndexBy", func(t *testing.T) {
 		t.Parallel()
 		type Person struct {
-			Id   int
+			ID   int
 			Name string
 		}
 		people := []Person{
-			{Id: 1, Name: "Alice"},
-			{Id: 2, Name: "Bob"},
+			{ID: 1, Name: "Alice"},
+			{ID: 2, Name: "Bob"},
 		}
 
 		result := IndexBy(FromSlice(people), func(p Person) int {
-			return p.Id
+			return p.ID
 		})
 
 		assert.Equal(t, "Alice", result[1].Name, "IndexBy should index by key")

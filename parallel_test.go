@@ -249,7 +249,7 @@ func TestParallelFilter(t *testing.T) {
 
 	t.Run("OrderedEmptyStream", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFilter(Empty[int](), func(n int) bool {
+		result := ParallelFilter(Empty[int](), func(_ int) bool {
 			return true
 		}, WithOrdered(true)).Collect()
 		assert.Empty(t, result, "ParallelFilter ordered on empty should be empty")
@@ -257,7 +257,7 @@ func TestParallelFilter(t *testing.T) {
 
 	t.Run("OrderedSingleElementPasses", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFilter(Of(42), func(n int) bool {
+		result := ParallelFilter(Of(42), func(_ int) bool {
 			return true
 		}, WithOrdered(true)).Collect()
 		assert.Equal(t, []int{42}, result, "ParallelFilter ordered should keep element if predicate true")
@@ -265,7 +265,7 @@ func TestParallelFilter(t *testing.T) {
 
 	t.Run("OrderedSingleElementFails", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFilter(Of(42), func(n int) bool {
+		result := ParallelFilter(Of(42), func(_ int) bool {
 			return false
 		}, WithOrdered(true)).Collect()
 		assert.Empty(t, result, "ParallelFilter ordered should drop element if predicate false")
@@ -324,7 +324,7 @@ func TestParallelFilter(t *testing.T) {
 
 	t.Run("UnorderedEmptyStream", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFilter(Empty[int](), func(n int) bool {
+		result := ParallelFilter(Empty[int](), func(_ int) bool {
 			return true
 		}, WithOrdered(false)).Collect()
 		assert.Empty(t, result, "ParallelFilter unordered on empty should be empty")
@@ -369,7 +369,7 @@ func TestParallelFlatMap(t *testing.T) {
 
 	t.Run("OrderedStreamingEmptySubStreams", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFlatMap(Of(1, 2, 3), func(n int) Stream[int] {
+		result := ParallelFlatMap(Of(1, 2, 3), func(_ int) Stream[int] {
 			return Empty[int]()
 		}, WithOrdered(true)).Collect()
 		assert.Empty(t, result, "ParallelFlatMap ordered streaming should drop empty sub-streams")
@@ -552,7 +552,7 @@ func TestParallelForEach(t *testing.T) {
 	t.Run("EmptyStream", func(t *testing.T) {
 		t.Parallel()
 		var count atomic.Int64
-		ParallelForEach(Empty[int](), func(n int) {
+		ParallelForEach(Empty[int](), func(_ int) {
 			count.Add(1)
 		}, WithConcurrency(2))
 		assert.Equal(t, int64(0), count.Load(), "ParallelForEach on empty should not invoke callback")
@@ -561,7 +561,7 @@ func TestParallelForEach(t *testing.T) {
 	t.Run("SingleElement", func(t *testing.T) {
 		t.Parallel()
 		var count atomic.Int64
-		ParallelForEach(Of(42), func(n int) {
+		ParallelForEach(Of(42), func(_ int) {
 			count.Add(1)
 		}, WithConcurrency(2))
 		assert.Equal(t, int64(1), count.Load(), "ParallelForEach single element should invoke once")
@@ -886,7 +886,7 @@ func TestParallelForEachCtx(t *testing.T) {
 	t.Run("Basic", func(t *testing.T) {
 		t.Parallel()
 		var sum atomic.Int64
-		err := ParallelForEachCtx(testCtx(), Of(1, 2, 3, 4, 5), func(ctx context.Context, n int) {
+		err := ParallelForEachCtx(testCtx(), Of(1, 2, 3, 4, 5), func(_ context.Context, n int) {
 			sum.Add(int64(n))
 		}, WithConcurrency(2))
 		assert.NoError(t, err, "ParallelForEachCtx should not error")
@@ -896,7 +896,7 @@ func TestParallelForEachCtx(t *testing.T) {
 	t.Run("Empty", func(t *testing.T) {
 		t.Parallel()
 		var count atomic.Int64
-		err := ParallelForEachCtx(testCtx(), Empty[int](), func(ctx context.Context, n int) {
+		err := ParallelForEachCtx(testCtx(), Empty[int](), func(_ context.Context, _ int) {
 			count.Add(1)
 		})
 		assert.NoError(t, err, "ParallelForEachCtx on empty should not error")
@@ -911,7 +911,7 @@ func TestParallelForEachCtx(t *testing.T) {
 		// Cancel immediately
 		cancel()
 
-		err := ParallelForEachCtx(ctx, Range(1, 1000), func(ctx context.Context, n int) {
+		err := ParallelForEachCtx(ctx, Range(1, 1000), func(_ context.Context, _ int) {
 			count.Add(1)
 		}, WithConcurrency(4))
 
@@ -925,7 +925,7 @@ func TestParallelForEachCtx(t *testing.T) {
 		defer cancel()
 
 		var count atomic.Int64
-		err := ParallelForEachCtx(ctx, Range(1, 10000), func(ctx context.Context, n int) {
+		err := ParallelForEachCtx(ctx, Range(1, 10000), func(_ context.Context, _ int) {
 			time.Sleep(10 * time.Millisecond) // Slow operation
 			count.Add(1)
 		}, WithConcurrency(2))
@@ -936,7 +936,7 @@ func TestParallelForEachCtx(t *testing.T) {
 	t.Run("LargeInput", func(t *testing.T) {
 		t.Parallel()
 		var sum atomic.Int64
-		err := ParallelForEachCtx(testCtx(), Range(1, 101), func(ctx context.Context, n int) {
+		err := ParallelForEachCtx(testCtx(), Range(1, 101), func(_ context.Context, n int) {
 			sum.Add(int64(n))
 		}, WithConcurrency(4))
 		assert.NoError(t, err, "ParallelForEachCtx should not error on large input")
@@ -951,7 +951,7 @@ func TestParallelMapCtx(t *testing.T) {
 
 	t.Run("Basic", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelMapCtx(testCtx(), Of(1, 2, 3), func(ctx context.Context, n int) int {
+		result := ParallelMapCtx(testCtx(), Of(1, 2, 3), func(_ context.Context, n int) int {
 			return n * 2
 		}, WithOrdered(true)).Collect()
 		assert.Equal(t, []int{2, 4, 6}, result, "ParallelMapCtx should transform elements")
@@ -962,7 +962,7 @@ func TestParallelMapCtx(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		result := ParallelMapCtx(ctx, Range(1, 1000), func(ctx context.Context, n int) int {
+		result := ParallelMapCtx(ctx, Range(1, 1000), func(_ context.Context, n int) int {
 			return n * 2
 		}, WithConcurrency(4), WithOrdered(true)).Collect()
 
@@ -972,7 +972,7 @@ func TestParallelMapCtx(t *testing.T) {
 
 	t.Run("Unordered", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelMapCtx(testCtx(), Of(1, 2, 3, 4, 5), func(ctx context.Context, n int) int {
+		result := ParallelMapCtx(testCtx(), Of(1, 2, 3, 4, 5), func(_ context.Context, n int) int {
 			return n * 2
 		}, WithOrdered(false), WithConcurrency(2)).Collect()
 		assert.Len(t, result, 5, "ParallelMapCtx unordered should return all elements")
@@ -980,7 +980,7 @@ func TestParallelMapCtx(t *testing.T) {
 
 	t.Run("Chunked", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelMapCtx(testCtx(), Of(1, 2, 3, 4, 5), func(ctx context.Context, n int) int {
+		result := ParallelMapCtx(testCtx(), Of(1, 2, 3, 4, 5), func(_ context.Context, n int) int {
 			return n * 2
 		}, WithOrdered(true), WithChunkSize(2)).Collect()
 		assert.Equal(t, []int{2, 4, 6, 8, 10}, result, "ParallelMapCtx chunked should preserve order")
@@ -994,7 +994,7 @@ func TestParallelFilterCtx(t *testing.T) {
 
 	t.Run("Basic", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFilterCtx(testCtx(), Of(1, 2, 3, 4, 5), func(ctx context.Context, n int) bool {
+		result := ParallelFilterCtx(testCtx(), Of(1, 2, 3, 4, 5), func(_ context.Context, n int) bool {
 			return n%2 == 0
 		}, WithOrdered(true)).Collect()
 		assert.Equal(t, []int{2, 4}, result, "ParallelFilterCtx should filter elements")
@@ -1005,7 +1005,7 @@ func TestParallelFilterCtx(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		result := ParallelFilterCtx(ctx, Range(1, 1000), func(ctx context.Context, n int) bool {
+		result := ParallelFilterCtx(ctx, Range(1, 1000), func(_ context.Context, n int) bool {
 			return n%2 == 0
 		}, WithConcurrency(4), WithOrdered(true)).Collect()
 
@@ -1015,7 +1015,7 @@ func TestParallelFilterCtx(t *testing.T) {
 
 	t.Run("Unordered", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFilterCtx(testCtx(), Of(1, 2, 3, 4, 5, 6), func(ctx context.Context, n int) bool {
+		result := ParallelFilterCtx(testCtx(), Of(1, 2, 3, 4, 5, 6), func(_ context.Context, n int) bool {
 			return n%2 == 0
 		}, WithOrdered(false), WithConcurrency(2)).Collect()
 		assert.Len(t, result, 3, "ParallelFilterCtx unordered should return filtered elements")
@@ -1023,7 +1023,7 @@ func TestParallelFilterCtx(t *testing.T) {
 
 	t.Run("Chunked", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFilterCtx(testCtx(), Of(1, 2, 3, 4, 5, 6), func(ctx context.Context, n int) bool {
+		result := ParallelFilterCtx(testCtx(), Of(1, 2, 3, 4, 5, 6), func(_ context.Context, n int) bool {
 			return n%2 == 0
 		}, WithOrdered(true), WithChunkSize(2)).Collect()
 		assert.Equal(t, []int{2, 4, 6}, result, "ParallelFilterCtx chunked should preserve order")
@@ -1037,7 +1037,7 @@ func TestParallelFlatMapCtx(t *testing.T) {
 
 	t.Run("Basic", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFlatMapCtx(testCtx(), Of(1, 2, 3), func(ctx context.Context, n int) Stream[int] {
+		result := ParallelFlatMapCtx(testCtx(), Of(1, 2, 3), func(_ context.Context, n int) Stream[int] {
 			return Of(n, n*10)
 		}, WithOrdered(true)).Collect()
 		assert.Equal(t, []int{1, 10, 2, 20, 3, 30}, result, "ParallelFlatMapCtx should flatten elements")
@@ -1048,7 +1048,7 @@ func TestParallelFlatMapCtx(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		result := ParallelFlatMapCtx(ctx, Range(1, 100), func(ctx context.Context, n int) Stream[int] {
+		result := ParallelFlatMapCtx(ctx, Range(1, 100), func(_ context.Context, n int) Stream[int] {
 			return Of(n, n*10)
 		}, WithConcurrency(4), WithOrdered(true)).Collect()
 
@@ -1058,7 +1058,7 @@ func TestParallelFlatMapCtx(t *testing.T) {
 
 	t.Run("Unordered", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFlatMapCtx(testCtx(), Of(1, 2, 3), func(ctx context.Context, n int) Stream[int] {
+		result := ParallelFlatMapCtx(testCtx(), Of(1, 2, 3), func(_ context.Context, n int) Stream[int] {
 			return Of(n, n*10)
 		}, WithOrdered(false), WithConcurrency(2)).Collect()
 		assert.Len(t, result, 6, "ParallelFlatMapCtx unordered should return all elements")
@@ -1066,7 +1066,7 @@ func TestParallelFlatMapCtx(t *testing.T) {
 
 	t.Run("Chunked", func(t *testing.T) {
 		t.Parallel()
-		result := ParallelFlatMapCtx(testCtx(), Of(1, 2, 3), func(ctx context.Context, n int) Stream[int] {
+		result := ParallelFlatMapCtx(testCtx(), Of(1, 2, 3), func(_ context.Context, n int) Stream[int] {
 			return Of(n, n*10)
 		}, WithOrdered(true), WithChunkSize(2)).Collect()
 		assert.Equal(t, []int{1, 10, 2, 20, 3, 30}, result, "ParallelFlatMapCtx chunked should preserve order")

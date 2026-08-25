@@ -45,8 +45,8 @@ func TestResultBasic(t *testing.T) {
 
 	t.Run("UnwrapOrElse", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, 42, Ok(42).UnwrapOrElse(func(e error) int { return 0 }), "UnwrapOrElse should return value for Ok")
-		assert.Equal(t, 99, Err[int](errors.New("err")).UnwrapOrElse(func(e error) int { return 99 }), "UnwrapOrElse should call fallback for Err")
+		assert.Equal(t, 42, Ok(42).UnwrapOrElse(func(_ error) int { return 0 }), "UnwrapOrElse should return value for Ok")
+		assert.Equal(t, 99, Err[int](errors.New("err")).UnwrapOrElse(func(_ error) int { return 99 }), "UnwrapOrElse should call fallback for Err")
 	})
 
 	t.Run("UnwrapPanics", func(t *testing.T) {
@@ -98,7 +98,7 @@ func TestResultBasic(t *testing.T) {
 
 	t.Run("MapErr", func(t *testing.T) {
 		t.Parallel()
-		okResult := Ok(5).MapErr(func(e error) error { return errors.New("wrapped") })
+		okResult := Ok(5).MapErr(func(_ error) error { return errors.New("wrapped") })
 		assert.True(t, okResult.IsOk(), "MapErr should keep Ok result")
 		assert.Equal(t, 5, okResult.Value(), "MapErr should keep the Ok value")
 
@@ -167,7 +167,7 @@ func TestResultTransformations(t *testing.T) {
 		})
 		assert.True(t, errInner.IsErr(), "FlatMapResult should return Err when mapper returns Err")
 
-		errOuter := FlatMapResult(Err[int](errors.New("outer")), func(n int) Result[string] {
+		errOuter := FlatMapResult(Err[int](errors.New("outer")), func(_ int) Result[string] {
 			return Ok("never called")
 		})
 		assert.True(t, errOuter.IsErr(), "FlatMapResult should return Err when input is Err")
@@ -212,7 +212,7 @@ func TestResultStreamOperations(t *testing.T) {
 	t.Run("MapErrToEarlyTerminationOnError", func(t *testing.T) {
 		t.Parallel()
 		// Test early termination when yield returns false during error path
-		results := MapErrTo(Of(1, 2, 3, 4, 5), func(n int) (string, error) {
+		results := MapErrTo(Of(1, 2, 3, 4, 5), func(_ int) (string, error) {
 			// Return error for all elements to test error path termination
 			return "", errors.New("error")
 		}).Limit(1).Collect()
@@ -244,7 +244,7 @@ func TestResultStreamOperations(t *testing.T) {
 	t.Run("FilterErrEarlyTerminationOnError", func(t *testing.T) {
 		t.Parallel()
 		// Test early termination when yield returns false during error path
-		results := FilterErr(Of(1, 2, 3, 4, 5), func(n int) (bool, error) {
+		results := FilterErr(Of(1, 2, 3, 4, 5), func(_ int) (bool, error) {
 			return false, errors.New("error")
 		}).Limit(1).Collect()
 		assert.Len(t, results, 1, "FilterErr should stop early on error path")
@@ -254,7 +254,7 @@ func TestResultStreamOperations(t *testing.T) {
 	t.Run("FilterErrEarlyTerminationOnOk", func(t *testing.T) {
 		t.Parallel()
 		// Test early termination when yield returns false during ok path
-		results := FilterErr(Of(1, 2, 3, 4, 5), func(n int) (bool, error) {
+		results := FilterErr(Of(1, 2, 3, 4, 5), func(_ int) (bool, error) {
 			return true, nil // All pass
 		}).Limit(2).Collect()
 		assert.Len(t, results, 2, "FilterErr should stop early on ok path")
@@ -286,7 +286,7 @@ func TestResultStreamOperations(t *testing.T) {
 	t.Run("FlatMapErrEarlyTerminationOnError", func(t *testing.T) {
 		t.Parallel()
 		// Test early termination when yield returns false during error path
-		results := FlatMapErr(Of(1, 2, 3), func(n int) (Stream[int], error) {
+		results := FlatMapErr(Of(1, 2, 3), func(_ int) (Stream[int], error) {
 			return Empty[int](), errors.New("error")
 		}).Limit(1).Collect()
 		assert.Len(t, results, 1, "FlatMapErr should stop early on error path")

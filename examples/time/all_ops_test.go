@@ -7,8 +7,9 @@ import (
 	streams "github.com/coldsmirk/go-streams"
 )
 
-// The examples below demonstrate usage patterns and compile,
-// but intentionally do not assert Output to avoid flakiness on slow CI.
+// These examples print nothing: the timing-dependent values they produce
+// would be flaky to assert. The empty Output block still has go test run
+// them and check that they finish without printing.
 
 func Example_windows_and_timestamps() {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
@@ -17,6 +18,7 @@ func Example_windows_and_timestamps() {
 	_ = streams.TumblingTimeWindow(ctx, streams.Range(0, 5), 5*time.Millisecond).Collect()
 	_ = streams.SlidingTimeWindow(ctx, streams.Range(0, 5), 10*time.Millisecond, 5*time.Millisecond).Collect()
 	_ = streams.SessionWindow(ctx, streams.Range(0, 3), 2*time.Millisecond).Collect()
+	// Output:
 }
 
 func Example_rates_delays_timeouts() {
@@ -29,6 +31,7 @@ func Example_rates_delays_timeouts() {
 	_ = streams.Delay(streams.Of(1, 2), 1*time.Millisecond).Collect()
 	_ = streams.DelayCtx(ctx, streams.Of(1, 2), 1*time.Millisecond).Collect()
 	_ = streams.Timeout(ctx, streams.Range(1, 3), 1*time.Millisecond).Collect()
+	// Output:
 }
 
 func Example_interval_and_timer() {
@@ -36,4 +39,5 @@ func Example_interval_and_timer() {
 	defer cancel()
 	_ = streams.Interval(ctx, 3*time.Millisecond).Limit(3).Collect()
 	_ = streams.Timer(ctx, 1*time.Millisecond, 42).Collect()
+	// Output:
 }

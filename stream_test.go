@@ -923,14 +923,14 @@ func TestEdgeCases(t *testing.T) {
 	t.Run("DistinctUntilChangedByAlwaysTrue", func(t *testing.T) {
 		t.Parallel()
 		// eq always returns true: only first element should be yielded
-		result := DistinctUntilChangedBy(Of(1, 2, 3, 4, 5), func(a, b int) bool { return true }).Collect()
+		result := DistinctUntilChangedBy(Of(1, 2, 3, 4, 5), func(_, _ int) bool { return true }).Collect()
 		assert.Equal(t, []int{1}, result, "DistinctUntilChangedBy with always-true eq should yield only first")
 	})
 
 	t.Run("DistinctUntilChangedByAlwaysFalse", func(t *testing.T) {
 		t.Parallel()
 		// eq always returns false: all elements should be yielded
-		result := DistinctUntilChangedBy(Of(1, 1, 1, 1, 1), func(a, b int) bool { return false }).Collect()
+		result := DistinctUntilChangedBy(Of(1, 1, 1, 1, 1), func(_, _ int) bool { return false }).Collect()
 		assert.Equal(t, []int{1, 1, 1, 1, 1}, result, "DistinctUntilChangedBy with always-false eq should yield all")
 	})
 
@@ -1006,7 +1006,7 @@ func TestRepeatForever(t *testing.T) {
 		t.Parallel()
 		// Test that early termination works
 		count := 0
-		RepeatForever(1).Limit(10).ForEach(func(n int) {
+		RepeatForever(1).Limit(10).ForEach(func(_ int) {
 			count++
 		})
 		assert.Equal(t, 10, count, "Limit(10) should invoke action exactly 10 times")
@@ -1692,7 +1692,7 @@ func TestEarlyTerminationDirectSeq(t *testing.T) {
 
 		merged := MergeSortedNHeap(func(a, b int) int { return a - b }, s1, s2, s3)
 		count := 0
-		merged.seq(func(v int) bool {
+		merged.seq(func(_ int) bool {
 			count++
 			return false // Stop immediately after first element
 		})
@@ -1704,7 +1704,7 @@ func TestEarlyTerminationDirectSeq(t *testing.T) {
 		// Test Permutations early termination on first permutation
 		stream := Permutations(Of(1, 2, 3))
 		count := 0
-		stream.seq(func(perm []int) bool {
+		stream.seq(func(_ []int) bool {
 			count++
 			return false // Stop immediately after first permutation
 		})
@@ -1716,7 +1716,7 @@ func TestEarlyTerminationDirectSeq(t *testing.T) {
 		// Test Permutations early termination in middle of generation
 		stream := Permutations(Of(1, 2, 3))
 		count := 0
-		stream.seq(func(perm []int) bool {
+		stream.seq(func(_ []int) bool {
 			count++
 			return count < 3 // Stop after 3 permutations
 		})
@@ -1734,7 +1734,7 @@ func TestEarlyTerminationDirectSeq(t *testing.T) {
 
 		merged := MergeSortedNHeap(func(a, b int) int { return a - b }, s1, s2, s3, s4, s5)
 		count := 0
-		merged.seq(func(v int) bool {
+		merged.seq(func(_ int) bool {
 			count++
 			return false // Stop immediately after first element
 		})

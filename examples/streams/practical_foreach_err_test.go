@@ -24,7 +24,7 @@ func Example_practicalForEachErr() {
 	ctx := context.Background()
 
 	// Simulate a transformer function
-	transform := func(ctx context.Context, m *Model) error {
+	transform := func(_ context.Context, m *Model) error {
 		if m.ID == 2 {
 			return fmt.Errorf("transformation failed for model ID %d", m.ID)
 		}
@@ -76,7 +76,7 @@ func Example_practicalForEachErrSuccess() {
 	ctx := context.Background()
 
 	// Simulate a transformer function
-	transform := func(ctx context.Context, m *Model) error {
+	transform := func(_ context.Context, m *Model) error {
 		m.Name = "Transformed-" + m.Name
 		return nil
 	}

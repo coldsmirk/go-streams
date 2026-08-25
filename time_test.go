@@ -643,7 +643,7 @@ func TestDebounce(t *testing.T) {
 	})
 
 	t.Run("ContextCancellation", func(t *testing.T) {
-		synctest.Test(t, func(t *testing.T) {
+		synctest.Test(t, func(_ *testing.T) {
 			// Drive cancellation via virtual time. Using WithTimeout prevents
 			// lingering goroutines when the subtest exits.
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
@@ -713,7 +713,7 @@ func TestSample(t *testing.T) {
 	})
 
 	t.Run("ContextCancellation", func(t *testing.T) {
-		synctest.Test(t, func(t *testing.T) {
+		synctest.Test(t, func(_ *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 
 			fastStream := Stream[int]{

@@ -858,7 +858,7 @@ func TestToWriterErrorAfterFirst(t *testing.T) {
 	t.Run("ErrorOnLargeWrite", func(t *testing.T) {
 		t.Parallel()
 		w := &errorWriter{failAfter: 0} // Fail on first write
-		err := ToWriter(Of(1, 2, 3), w, func(n int) string {
+		err := ToWriter(Of(1, 2, 3), w, func(_ int) string {
 			return largeString
 		})
 		assert.Error(t, err, "ToWriter should return error when writing large string fails")

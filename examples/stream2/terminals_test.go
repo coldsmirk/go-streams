@@ -54,7 +54,7 @@ func Example_stream2_dropWhile() {
 		streams.NewPair("b", 2),
 		streams.NewPair("a", 3),
 	)
-	dropped := s2.DropWhile(func(k string, v int) bool { return v < 2 }).CollectPairs()
+	dropped := s2.DropWhile(func(_ string, v int) bool { return v < 2 }).CollectPairs()
 	fmt.Println(len(dropped), dropped[0].Second)
 	// Output:
 	// 2 2

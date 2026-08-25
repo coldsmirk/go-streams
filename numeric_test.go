@@ -314,7 +314,7 @@ func TestNumericOperations(t *testing.T) {
 			Age  int
 		}
 		// MinBy consumes all elements, but we can test that it works with filter
-		result := MinBy(Of(Person{"A", 30}, Person{"B", 25}).Filter(func(p Person) bool { return true }), func(p Person) int { return p.Age })
+		result := MinBy(Of(Person{"A", 30}, Person{"B", 25}).Filter(func(_ Person) bool { return true }), func(p Person) int { return p.Age })
 		assert.True(t, result.IsPresent(), "MinBy should return Some for non-empty stream")
 		assert.Equal(t, "B", result.Get().Name, "MinBy should return the smallest key element")
 	})
@@ -325,7 +325,7 @@ func TestNumericOperations(t *testing.T) {
 			Name string
 			Age  int
 		}
-		result := MaxBy(Of(Person{"A", 30}, Person{"B", 25}).Filter(func(p Person) bool { return true }), func(p Person) int { return p.Age })
+		result := MaxBy(Of(Person{"A", 30}, Person{"B", 25}).Filter(func(_ Person) bool { return true }), func(p Person) int { return p.Age })
 		assert.True(t, result.IsPresent(), "MaxBy should return Some for non-empty stream")
 		assert.Equal(t, "A", result.Get().Name, "MaxBy should return the largest key element")
 	})

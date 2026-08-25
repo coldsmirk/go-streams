@@ -42,7 +42,7 @@ func TestStream2(t *testing.T) {
 			NewPair("c", 3),
 		)
 
-		result := s.Filter(func(k string, v int) bool {
+		result := s.Filter(func(_ string, v int) bool {
 			return v > 1
 		}).CollectPairs()
 
@@ -136,20 +136,20 @@ func TestStream2(t *testing.T) {
 	t.Run("AnyMatch", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2))
-		assert.True(t, s.AnyMatch(func(k string, v int) bool { return v == 2 }), "AnyMatch(v==2) should return true")
-		assert.False(t, s.AnyMatch(func(k string, v int) bool { return v == 5 }), "AnyMatch(v==5) should return false when no pair matches")
+		assert.True(t, s.AnyMatch(func(_ string, v int) bool { return v == 2 }), "AnyMatch(v==2) should return true")
+		assert.False(t, s.AnyMatch(func(_ string, v int) bool { return v == 5 }), "AnyMatch(v==5) should return false when no pair matches")
 	})
 
 	t.Run("AllMatch", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 2), NewPair("b", 4))
-		assert.True(t, s.AllMatch(func(k string, v int) bool { return v%2 == 0 }), "AllMatch(v%2==0) should be true for values [2,4]")
+		assert.True(t, s.AllMatch(func(_ string, v int) bool { return v%2 == 0 }), "AllMatch(v%2==0) should be true for values [2,4]")
 	})
 
 	t.Run("NoneMatch", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 1), NewPair("b", 3))
-		assert.True(t, s.NoneMatch(func(k string, v int) bool { return v%2 == 0 }), "NoneMatch(v%2==0) should be true for values [1,3]")
+		assert.True(t, s.NoneMatch(func(_ string, v int) bool { return v%2 == 0 }), "NoneMatch(v%2==0) should be true for values [1,3]")
 	})
 
 	t.Run("First", func(t *testing.T) {
@@ -174,7 +174,7 @@ func TestStream2(t *testing.T) {
 			NewPair("b", 2),
 			NewPair("c", 3),
 		)
-		result := s.TakeWhile(func(k string, v int) bool { return v < 3 }).CollectPairs()
+		result := s.TakeWhile(func(_ string, v int) bool { return v < 3 }).CollectPairs()
 		assert.Len(t, result, 2, "TakeWhile should take while predicate is true")
 	})
 
@@ -185,7 +185,7 @@ func TestStream2(t *testing.T) {
 			NewPair("b", 2),
 			NewPair("c", 3),
 		)
-		result := s.DropWhile(func(k string, v int) bool { return v < 2 }).CollectPairs()
+		result := s.DropWhile(func(_ string, v int) bool { return v < 2 }).CollectPairs()
 		assert.Len(t, result, 2, "DropWhile should drop while predicate is true")
 	})
 
@@ -193,7 +193,7 @@ func TestStream2(t *testing.T) {
 		t.Parallel()
 		var peeked []string
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2))
-		result := s.Peek(func(k string, v int) {
+		result := s.Peek(func(k string, _ int) {
 			peeked = append(peeked, k)
 		}).CollectPairs()
 
@@ -280,7 +280,7 @@ func TestStream2TypeTransformations(t *testing.T) {
 
 	t.Run("MapPairsToEmpty", func(t *testing.T) {
 		t.Parallel()
-		result := MapPairsTo(Empty2[string, int](), func(k string, v int) string {
+		result := MapPairsTo(Empty2[string, int](), func(k string, _ int) string {
 			return k
 		}).Collect()
 
@@ -314,7 +314,7 @@ func TestStream2TypeTransformations(t *testing.T) {
 		t.Parallel()
 		result := MapToPairs(Of("a", "bb", "ccc"), func(s string) (int, string) {
 			return len(s), s
-		}).Filter(func(k int, v string) bool {
+		}).Filter(func(k int, _ string) bool {
 			return k > 1
 		}).CollectPairs()
 
@@ -461,7 +461,7 @@ func TestStream2NewOperations(t *testing.T) {
 		t.Parallel()
 		var peeked []string
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2), NewPair("c", 3))
-		result := s.Peek(func(k string, v int) {
+		result := s.Peek(func(k string, _ int) {
 			peeked = append(peeked, k)
 		}).Limit(2).CollectPairs()
 		assert.Len(t, result, 2, "Peek with Limit should stop after collecting 2")
@@ -472,14 +472,14 @@ func TestStream2NewOperations(t *testing.T) {
 	t.Run("TakeWhileEarlyTermination", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2), NewPair("c", 3))
-		result := s.TakeWhile(func(k string, v int) bool { return v < 3 }).Limit(1).CollectPairs()
+		result := s.TakeWhile(func(_ string, v int) bool { return v < 3 }).Limit(1).CollectPairs()
 		assert.Len(t, result, 1, "TakeWhile(v<3) then Limit(1) should return 1 pair")
 	})
 
 	t.Run("DropWhileEarlyTermination", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2), NewPair("c", 3))
-		result := s.DropWhile(func(k string, v int) bool { return v < 2 }).Limit(1).CollectPairs()
+		result := s.DropWhile(func(_ string, v int) bool { return v < 2 }).Limit(1).CollectPairs()
 		assert.Len(t, result, 1, "DropWhile(v<2) then Limit(1) should return 1 pair")
 		assert.Equal(t, "b", result[0].First, "DropWhile should drop until predicate fails")
 	})
@@ -487,14 +487,14 @@ func TestStream2NewOperations(t *testing.T) {
 	t.Run("AllMatchEarlyFalse", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2), NewPair("c", 3))
-		result := s.AllMatch(func(k string, v int) bool { return v < 2 })
+		result := s.AllMatch(func(_ string, v int) bool { return v < 2 })
 		assert.False(t, result, "AllMatch should return false early when condition fails")
 	})
 
 	t.Run("NoneMatchEarlyFalse", func(t *testing.T) {
 		t.Parallel()
 		s := PairsOf(NewPair("a", 1), NewPair("b", 2), NewPair("c", 3))
-		result := s.NoneMatch(func(k string, v int) bool { return v == 2 })
+		result := s.NoneMatch(func(_ string, v int) bool { return v == 2 })
 		assert.False(t, result, "NoneMatch should return false early when match found")
 	})
 
@@ -548,7 +548,7 @@ func TestStream2NewOperations(t *testing.T) {
 			NewPair("c", 6),
 			NewPair("d", 8),
 		)
-		result := s.Filter(func(k string, v int) bool {
+		result := s.Filter(func(_ string, v int) bool {
 			return v > 0
 		}).Limit(2).CollectPairs()
 		assert.Len(t, result, 2, "Filter(v>0) then Limit(2) should return 2 pairs")
@@ -662,7 +662,7 @@ func TestStream2ParallelFilter(t *testing.T) {
 			NewPair("c", 3),
 			NewPair("d", 4),
 		)
-		result := s.ParallelFilter(func(k string, v int) bool {
+		result := s.ParallelFilter(func(_ string, v int) bool {
 			return v%2 == 0
 		}, WithOrdered(true)).CollectPairs()
 
@@ -673,7 +673,7 @@ func TestStream2ParallelFilter(t *testing.T) {
 
 	t.Run("Empty", func(t *testing.T) {
 		t.Parallel()
-		result := Empty2[string, int]().ParallelFilter(func(k string, v int) bool {
+		result := Empty2[string, int]().ParallelFilter(func(_ string, _ int) bool {
 			return true
 		}).CollectPairs()
 		assert.Empty(t, result, "ParallelFilter on empty should return empty")
@@ -686,7 +686,7 @@ func TestStream2ParallelFilter(t *testing.T) {
 			NewPair("b", 4),
 			NewPair("c", 6),
 		)
-		result := s.ParallelFilter(func(k string, v int) bool {
+		result := s.ParallelFilter(func(_ string, v int) bool {
 			return v%2 == 0
 		}, WithOrdered(true)).CollectPairs()
 
@@ -700,7 +700,7 @@ func TestStream2ParallelFilter(t *testing.T) {
 			NewPair("b", 3),
 			NewPair("c", 5),
 		)
-		result := s.ParallelFilter(func(k string, v int) bool {
+		result := s.ParallelFilter(func(_ string, v int) bool {
 			return v%2 == 0
 		}, WithOrdered(true)).CollectPairs()
 
@@ -716,7 +716,7 @@ func TestStream2ParallelFilter(t *testing.T) {
 			NewPair("d", 8),
 			NewPair("e", 10),
 		)
-		result := s.ParallelFilter(func(k string, v int) bool {
+		result := s.ParallelFilter(func(_ string, v int) bool {
 			return v%2 == 0
 		}, WithOrdered(true)).Limit(2).CollectPairs()
 
@@ -731,7 +731,7 @@ func TestStream2ParallelFilter(t *testing.T) {
 			NewPair("c", 3),
 			NewPair("d", 4),
 		)
-		result := s.ParallelFilter(func(k string, v int) bool {
+		result := s.ParallelFilter(func(_ string, v int) bool {
 			return v%2 == 0
 		}, WithOrdered(false)).CollectPairs()
 
@@ -745,7 +745,7 @@ func TestStream2ParallelFilter(t *testing.T) {
 			pairs[i] = NewPair(i, i)
 		}
 		s := PairsOf(pairs...)
-		result := s.ParallelFilter(func(k int, v int) bool {
+		result := s.ParallelFilter(func(_ int, v int) bool {
 			return v%2 == 0
 		}, WithConcurrency(4), WithOrdered(true)).CollectPairs()
 

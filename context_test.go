@@ -416,7 +416,7 @@ func TestForEachCtx(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		var count int
-		err := ForEachCtx(ctx, Of(1, 2, 3), func(n int) { count++ })
+		err := ForEachCtx(ctx, Of(1, 2, 3), func(_ int) { count++ })
 		assert.Error(t, err, "ForEachCtx should error on already-cancelled context")
 		assert.Equal(t, 0, count, "ForEachCtx should not execute callback on cancelled context")
 	})
@@ -625,7 +625,7 @@ func TestFindFirstCtx(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		result, err := FindFirstCtx(ctx, Of(1, 2, 3), func(n int) bool { return true })
+		result, err := FindFirstCtx(ctx, Of(1, 2, 3), func(_ int) bool { return true })
 		assert.Error(t, err, "FindFirstCtx should error on already-cancelled context")
 		assert.False(t, result.IsPresent(), "FindFirstCtx should be empty on already-cancelled context")
 	})
@@ -670,7 +670,7 @@ func TestAnyMatchCtx(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		result, err := AnyMatchCtx(ctx, Of(1, 2, 3), func(n int) bool { return true })
+		result, err := AnyMatchCtx(ctx, Of(1, 2, 3), func(_ int) bool { return true })
 		assert.Error(t, err, "AnyMatchCtx should error on already-cancelled context")
 		assert.False(t, result, "AnyMatchCtx should return false on already-cancelled context")
 	})
@@ -723,7 +723,7 @@ func TestAllMatchCtx(t *testing.T) {
 	t.Run("EmptyStream", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		result, err := AllMatchCtx(ctx, Empty[int](), func(n int) bool { return false })
+		result, err := AllMatchCtx(ctx, Empty[int](), func(_ int) bool { return false })
 		assert.NoError(t, err, "AllMatchCtx empty should not error")
 		assert.True(t, result, "AllMatchCtx empty should be true (vacuous truth)")
 	})
@@ -804,7 +804,7 @@ func TestFilterCtx(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		result := FilterCtx(ctx, Of(1, 2, 3, 4, 5), func(n int) bool { return true }).Collect()
+		result := FilterCtx(ctx, Of(1, 2, 3, 4, 5), func(_ int) bool { return true }).Collect()
 		assert.Empty(t, result, "FilterCtx with already-cancelled context should be empty")
 	})
 
@@ -883,7 +883,7 @@ func TestMapToCtx(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		result := MapToCtx(ctx, Of(1, 2, 3), func(n int) string { return "x" }).Collect()
+		result := MapToCtx(ctx, Of(1, 2, 3), func(_ int) string { return "x" }).Collect()
 		assert.Empty(t, result, "MapToCtx with already-cancelled context should be empty")
 	})
 }
