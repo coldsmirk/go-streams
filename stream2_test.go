@@ -14,7 +14,7 @@ func TestStream2Ops(t *testing.T) {
 
 	eq(t, "Keys", s().Keys().Collect(), []string{"a", "b", "c"})
 	eq(t, "Values", s().Values().Collect(), []int{1, 2, 3})
-	eq(t, "Filter", s().Filter(func(k string, v int) bool { return v > 1 }).Keys().Collect(),
+	eq(t, "Filter", s().Filter(func(_ string, v int) bool { return v > 1 }).Keys().Collect(),
 		[]string{"b", "c"})
 	eq(t, "MapKeys", s().MapKeys(func(k string) int { return len(k) }).Keys().Collect(),
 		[]int{1, 1, 1})
@@ -29,7 +29,7 @@ func TestStream2Ops(t *testing.T) {
 	if got := s().Count(); got != 3 {
 		t.Errorf("Count = %d", got)
 	}
-	if got := s().Fold(0, func(a int, k string, v int) int { return a + v }); got != 6 {
+	if got := s().Fold(0, func(a int, _ string, v int) int { return a + v }); got != 6 {
 		t.Errorf("Fold = %d", got)
 	}
 	visited := 0
@@ -69,7 +69,7 @@ func TestStream2ShortCircuits(t *testing.T) {
 
 	consumed = 0
 	Range(0, 1000).Peek(func(int) { consumed++ }).Enumerate().
-		Collapse(func(i, v int) int { return v }).First()
+		Collapse(func(_, v int) int { return v }).First()
 	if consumed != 1 {
 		t.Errorf("Collapse+First consumed %d, want 1", consumed)
 	}

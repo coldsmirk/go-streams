@@ -6,10 +6,6 @@ import (
 	"os"
 )
 
-// readFile returns the sequence seq produces over the contents of the file at
-// path. The file is opened when iteration begins and closed when it ends,
-// including when the consumer stops early. A file that cannot be opened is
-// reported as the single pair of the zero value and the error.
 // File opens the file at path, hands it to parse, and yields what parse yields,
 // closing the file when the iteration ends however it ends. A file that cannot
 // be opened yields exactly one pair, of the zero value and the error.

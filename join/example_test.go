@@ -27,7 +27,7 @@ func ExampleLeft() {
 	people := streams.Of("ada", "ken").Zip(streams.Of(36, 81))
 	languages := streams.Of("ada").Zip(streams.Of("Go"))
 
-	got := join.Left(people, languages, func(name string, age int, lang string, matched bool) string {
+	got := join.Left(people, languages, func(name string, _ int, lang string, matched bool) string {
 		if !matched {
 			lang = "none"
 		}

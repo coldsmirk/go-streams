@@ -67,8 +67,8 @@ func TestThrottleEmitsEveryElementPaced(t *testing.T) {
 		t.Errorf("Throttle = %v, want %v", got, want)
 	}
 	// The first element is free, the other three each wait an interval.
-	if min := 3*interval - 10*time.Millisecond; elapsed < min {
-		t.Errorf("Throttle took %v, want at least %v", elapsed, min)
+	if atLeast := 3*interval - 10*time.Millisecond; elapsed < atLeast {
+		t.Errorf("Throttle took %v, want at least %v", elapsed, atLeast)
 	}
 }
 
@@ -97,8 +97,8 @@ func TestDelayShiftsEveryElement(t *testing.T) {
 	if want := []int{1, 2, 3}; !slices.Equal(got, want) {
 		t.Errorf("Delay = %v, want %v", got, want)
 	}
-	if min := 3*d - 10*time.Millisecond; elapsed < min {
-		t.Errorf("Delay took %v, want at least %v", elapsed, min)
+	if atLeast := 3*d - 10*time.Millisecond; elapsed < atLeast {
+		t.Errorf("Delay took %v, want at least %v", elapsed, atLeast)
 	}
 }
 
@@ -117,8 +117,8 @@ func TestRateLimitPacesBeyondTheInitialBurst(t *testing.T) {
 		t.Errorf("RateLimit = %v, want %v", got, want)
 	}
 	// Two elements ride the initial burst; the other four are paced.
-	if min := 3 * emission; elapsed < min {
-		t.Errorf("RateLimit took %v, want at least %v", elapsed, min)
+	if atLeast := 3 * emission; elapsed < atLeast {
+		t.Errorf("RateLimit took %v, want at least %v", elapsed, atLeast)
 	}
 }
 
@@ -349,8 +349,8 @@ func TestTimeoutBoundsTheWholeIteration(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("Timeout err = %v, want %v", err, context.DeadlineExceeded)
 	}
-	if min := d - 10*time.Millisecond; elapsed < min {
-		t.Errorf("Timeout fired after %v, want at least %v", elapsed, min)
+	if atLeast := d - 10*time.Millisecond; elapsed < atLeast {
+		t.Errorf("Timeout fired after %v, want at least %v", elapsed, atLeast)
 	}
 }
 
@@ -387,8 +387,8 @@ func TestIntervalTicks(t *testing.T) {
 			break
 		}
 	}
-	if min := 3*d - 10*time.Millisecond; elapsed < min {
-		t.Errorf("Interval took %v for three ticks, want at least %v", elapsed, min)
+	if atLeast := 3*d - 10*time.Millisecond; elapsed < atLeast {
+		t.Errorf("Interval took %v for three ticks, want at least %v", elapsed, atLeast)
 	}
 }
 

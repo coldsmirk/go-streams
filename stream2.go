@@ -18,7 +18,7 @@ func Pairs[M ~map[K]V, K comparable, V any](m M) Stream2[K, V] {
 }
 
 // Empty2 returns a Stream2 with no elements.
-func Empty2[K, V any]() Stream2[K, V] { return func(yield func(K, V) bool) {} }
+func Empty2[K, V any]() Stream2[K, V] { return func(func(K, V) bool) {} }
 
 // Keys returns a Stream of the first element of each pair.
 func (s Stream2[K, V]) Keys() Stream[K] {

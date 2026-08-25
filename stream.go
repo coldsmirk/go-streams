@@ -19,7 +19,7 @@ func From[T any](seq iter.Seq[T]) Stream[T] { return Stream[T](seq) }
 func Of[T any](values ...T) Stream[T] { return Stream[T](slices.Values(values)) }
 
 // Empty returns a Stream with no elements.
-func Empty[T any]() Stream[T] { return func(yield func(T) bool) {} }
+func Empty[T any]() Stream[T] { return func(func(T) bool) {} }
 
 // Chan returns a Stream over the values received from ch, ending when ch is
 // closed. Stopping the iteration early leaves any unreceived values in ch.

@@ -211,7 +211,7 @@ func TestUnkeyedStreamsJoinViaKeyBy(t *testing.T) {
 
 	t.Run("Full", func(t *testing.T) {
 		got := Full(streams.Of("apple").KeyBy(initial), streams.Of("bee").KeyBy(initial),
-			func(k string, a string, ha bool, b string, hb bool) string {
+			func(k string, a string, _ bool, b string, _ bool) string {
 				return k + ":" + a + "/" + b
 			}).Collect()
 		eq(t, "full", got, []string{"a:apple/", "b:/bee"})
@@ -256,7 +256,7 @@ func TestJoinsStreamTheLeftSide(t *testing.T) {
 	}
 	eq(t, "Inner over KeyBy",
 		Inner(unkeyed(), onSrcB().KeyBy(initial),
-			func(_ string, a, b string) string { return b }).Take(3).Collect(),
+			func(_ string, _, b string) string { return b }).Take(3).Collect(),
 		[]string{"ant", "auk", "ant"})
 	eq(t, "Semi over KeyBy",
 		Semi(unkeyed(), onSrcB().KeyBy(initial)).Take(2).Values().Collect(),

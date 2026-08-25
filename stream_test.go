@@ -149,13 +149,13 @@ func TestTerminalOps(t *testing.T) {
 		t.Errorf("Fold = %d", got)
 	}
 	// Fold accumulates into a different type
-	if got := s().Fold("", func(a string, v int) string { return a + "." }); got != "....." {
+	if got := s().Fold("", func(a string, _ int) string { return a + "." }); got != "....." {
 		t.Errorf("Fold to string = %q", got)
 	}
 	if got, ok := s().Reduce(func(a, b int) int { return a + b }); !ok || got != 14 {
 		t.Errorf("Reduce = %d, %v", got, ok)
 	}
-	if _, ok := Empty[int]().Reduce(func(a, b int) int { return a }); ok {
+	if _, ok := Empty[int]().Reduce(func(a, _ int) int { return a }); ok {
 		t.Error("Reduce on empty must report false")
 	}
 
@@ -177,7 +177,7 @@ func TestTerminalOps(t *testing.T) {
 	if s().All(func(i int) bool { return i > 2 }) {
 		t.Error("All must be false")
 	}
-	if !Empty[int]().All(func(i int) bool { return false }) {
+	if !Empty[int]().All(func(_ int) bool { return false }) {
 		t.Error("All must be true for an empty Stream")
 	}
 

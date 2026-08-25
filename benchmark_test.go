@@ -246,7 +246,7 @@ func BenchmarkStream2MapValues(b *testing.B) {
 	for b.Loop() {
 		sinkInt = Of(xs...).Enumerate().
 			MapValues(func(v int) int { return v * 2 }).
-			Fold(0, func(a, k, v int) int { return a + v })
+			Fold(0, func(a, _, v int) int { return a + v })
 	}
 }
 

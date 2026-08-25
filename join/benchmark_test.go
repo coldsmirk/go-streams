@@ -39,37 +39,37 @@ func benchJoin(b *testing.B, perKey int, run func(a, c streams.Stream2[int, row]
 
 func BenchmarkInner(b *testing.B) {
 	benchJoin(b, 1, func(a, c streams.Stream2[int, row]) int {
-		return Inner(a, c, func(k int, l, r row) int { return k }).Count()
+		return Inner(a, c, func(k int, _, _ row) int { return k }).Count()
 	})
 }
 
 func BenchmarkInnerFanOut(b *testing.B) {
 	benchJoin(b, 100, func(a, c streams.Stream2[int, row]) int {
-		return Inner(a, c, func(k int, l, r row) int { return k }).Count()
+		return Inner(a, c, func(k int, _, _ row) int { return k }).Count()
 	})
 }
 
 func BenchmarkLeft(b *testing.B) {
 	benchJoin(b, 1, func(a, c streams.Stream2[int, row]) int {
-		return Left(a, c, func(k int, l, r row, ok bool) int { return k }).Count()
+		return Left(a, c, func(k int, _, _ row, _ bool) int { return k }).Count()
 	})
 }
 
 func BenchmarkRight(b *testing.B) {
 	benchJoin(b, 1, func(a, c streams.Stream2[int, row]) int {
-		return Right(a, c, func(k int, l row, ok bool, r row) int { return k }).Count()
+		return Right(a, c, func(k int, _ row, _ bool, _ row) int { return k }).Count()
 	})
 }
 
 func BenchmarkFull(b *testing.B) {
 	benchJoin(b, 1, func(a, c streams.Stream2[int, row]) int {
-		return Full(a, c, func(k int, l row, hl bool, r row, hr bool) int { return k }).Count()
+		return Full(a, c, func(k int, _ row, _ bool, _ row, _ bool) int { return k }).Count()
 	})
 }
 
 func BenchmarkGroup(b *testing.B) {
 	benchJoin(b, 4, func(a, c streams.Stream2[int, row]) int {
-		return Group(a, c, func(k int, l, r []row) int { return len(l) + len(r) }).Count()
+		return Group(a, c, func(_ int, l, r []row) int { return len(l) + len(r) }).Count()
 	})
 }
 

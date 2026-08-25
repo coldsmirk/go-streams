@@ -2,6 +2,7 @@ package streams
 
 import (
 	"cmp"
+	"errors"
 	"iter"
 	"math"
 	"slices"
@@ -146,7 +147,7 @@ func TestFallibleSequences(t *testing.T) {
 	eq(t, "Try values", got, []int{2, 3})
 
 	partial, err := Try(TryMap(Of("aa", "bad", "cc"), parse))
-	if err != errBad {
+	if !errors.Is(err, errBad) {
 		t.Fatalf("Try err = %v, want errBad", err)
 	}
 	eq(t, "Try stops at the error", partial, []int{2})
@@ -269,7 +270,7 @@ func TestOk(t *testing.T) {
 		seq, _ := fallible(10, 2)
 		s, err := Ok(seq)
 		eq(t, "values before the error", s.Collect(), []int{0, 1})
-		if err() != errBad {
+		if !errors.Is(err(), errBad) {
 			t.Errorf("err = %v, want errBad", err())
 		}
 	})
@@ -288,7 +289,7 @@ func TestOk(t *testing.T) {
 	})
 
 	t.Run("an empty source is not an error", func(t *testing.T) {
-		s, err := Ok(func(yield func(int, error) bool) {})
+		s, err := Ok(func(_ func(int, error) bool) {})
 		if got := s.Collect(); len(got) != 0 {
 			t.Errorf("values = %v", got)
 		}

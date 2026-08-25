@@ -248,7 +248,7 @@ func TestToTreeSetKeepsTheFirstOfEachEqualGroup(t *testing.T) {
 // The two are deliberately different; pin both so neither drifts.
 func TestToTreeMapKeepsTheLastOfEachEqualKey(t *testing.T) {
 	m := ToTreeMap(streams.Of("a", "a").Zip(streams.Of(1, 2)),
-		func(x, y string) int { return strings.Compare(x, y) })
+		strings.Compare)
 	if v, _ := m.Get("a"); v != 2 {
 		t.Errorf("ToTreeMap kept %d, want the last value 2", v)
 	}
