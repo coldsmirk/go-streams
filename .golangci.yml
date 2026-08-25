@@ -3,13 +3,103 @@ version: "2"
 linters:
   default: standard
   enable:
+    - asciicheck
+    - bidichk
+    - dupword
+    - durationcheck
     - errorlint
     - gocritic
+    - godot
+    - gosec
+    # No locale is set on misspell. The prose here is British throughout —
+    # honour, cancelling, behaviour, neighbours — and `locale: US` rejects
+    # every one of those as a misspelling.
     - misspell
+    - nilerr
+    - nilnesserr
     - predeclared
     - revive
     - testableexamples
     - unconvert
+    - unparam
+
+  settings:
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+
+    godot:
+      # Declarations only. A doc comment is published API surface and is held
+      # to sentence form; a note inside a function body is not.
+      scope: declarations
+      capital: false
+
+    gosec:
+      severity: high
+      confidence: high
+
+    govet:
+      enable-all: true
+      disable:
+        # Field order follows meaning here, not padding.
+        - fieldalignment
+        # Reusing a name in a narrower scope is idiomatic and reads better than
+        # inventing a second one.
+        - shadow
+
+    revive:
+      severity: error
+      # Every rule, minus the handful below. This is stricter than it sounds:
+      # the whole rule set costs five exceptions, and the rules a library most
+      # needs — exported, package-comments, datarace, waitgroup-by-value,
+      # time-equal — all pass as written. CI pins the linter version, so a
+      # revive release cannot turn the build red on its own.
+      enable-all-rules: true
+      rules:
+        # The numbers in a table-driven test are the data. Naming them as
+        # constants moves the case away from the expectation it belongs to.
+        - name: add-constant
+          disabled: true
+
+        # gofmt governs layout, and the doc comments already wrap at 78.
+        - name: line-length-limit
+          disabled: true
+
+        # The default threshold of 7 rejects ordinary table-driven tests.
+        - name: cognitive-complexity
+          disabled: true
+
+        # The default of 10 is below what a select loop over a source, a timer
+        # and a context already costs — Sliding sits at 11 with nothing to
+        # remove. 15 leaves that shape room and still catches a tangle.
+        - name: cyclomatic
+          arguments: [15]
+
+        # An exported function delegating to an unexported helper of the same
+        # name is idiomatic Go — WriteFile and writeFile in the source package
+        # are exactly that — and the parallel Stream and Stream2 method names
+        # are this package's design, not a collision.
+        - name: confusing-naming
+          disabled: true
+
+        # An outer join hands its combiner a presence flag beside the value
+        # that flag describes, so a bool parameter is part of the published API
+        # in the join package rather than a control-coupling smell.
+        - name: flag-parameter
+          disabled: true
+
+        # A switch over a closed set needs no default clause.
+        - name: enforce-switch-style
+          arguments: ["allowNoDefault"]
+
+        # Every subrule except loop. Merge defers one stop per input stream so
+        # that each pulled source is released when the merge ends; the count is
+        # bounded by the argument list, and the deferred call cannot be hoisted
+        # out of the loop that creates the thing it releases.
+        - name: defer
+          arguments:
+            [["call-chain", "method-call", "recover", "immediate-recover", "return"]]
 
   exclusions:
     rules:
@@ -18,6 +108,19 @@ linters:
       # read a source to its end, or to consume until the context is cancelled.
       - linters: [revive]
         text: "empty-block"
+
+      # A goroutine count is only stable once the collector has run, so the
+      # helpers that take one call runtime.GC first.
+      - path: '_test\.go'
+        linters: [revive]
+        text: "call-to-gc"
+
+      # A behaviour-named test asserts every branch of one operation in one
+      # function, so its branch count tracks the size of the contract rather
+      # than any tangle in the test.
+      - path: '_test\.go'
+        linters: [revive]
+        text: "cyclomatic"
 
 issues:
   # Report every occurrence: a truncated list hides work.

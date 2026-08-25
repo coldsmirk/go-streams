@@ -2,6 +2,7 @@ package streams_test
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"iter"
 	"maps"
@@ -139,7 +140,7 @@ func ExampleFrom() {
 func ExampleTryMap() {
 	parse := func(s string) (int, error) {
 		if s == "" {
-			return 0, fmt.Errorf("empty field")
+			return 0, errors.New("empty field")
 		}
 		return len(s), nil
 	}
