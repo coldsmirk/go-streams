@@ -20,6 +20,7 @@ linters:
     - predeclared
     - revive
     - testableexamples
+    - testifylint
     - unconvert
     - unparam
 
@@ -38,6 +39,14 @@ linters:
     gosec:
       severity: high
       confidence: high
+
+    testifylint:
+      disable:
+        # The float assertions here compare sums and means of values that are
+        # exact in binary — 1.5 + 2.5, 10 / 4 — against exact literals, which is
+        # what the native `!=` before them did. InEpsilon would accept a result
+        # this package should never produce.
+        - float-compare
 
     govet:
       enable-all: true

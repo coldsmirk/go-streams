@@ -17,7 +17,10 @@
 - Compare an expected empty slice with `assert.Empty`, never `assert.Equal`
   against `nil`. `slices.Equal(nil, []T{})` is true but `assert.Equal` compares
   with `reflect.DeepEqual`, which separates a nil slice from an empty one, so
-  `assert.Equal` would tighten the assertion without saying so.
+  `assert.Equal` would tighten the assertion without saying so. The exception is
+  a table whose `want` field is a typed nil: there the row is asserting nil-ness
+  deliberately, and branching on `want == nil` at the call site reads worse than
+  the tightening costs.
 - End a polling loop that has already decided the outcome with `assert.Fail`,
   not with a fresh assertion on the value it was polling. Re-reading a
   goroutine count or a deadline after the loop gives the failure a second
@@ -50,5 +53,8 @@
 
 - `task check` runs the formatter, `go vet`, the linter and the tests.
 - The linter version is pinned in CI. Raise it deliberately, not incidentally.
+- `testifylint` enforces the assert/require split and the empty-collection rule
+  above, so most of the Testing section is checked rather than reviewed. Its
+  `float-compare` checker is off: see the reason in `.golangci.yml`.
 - Prefer a rule exception in `.golangci.yml`, carrying the reason, over a
   `//nolint` comment in the source.
