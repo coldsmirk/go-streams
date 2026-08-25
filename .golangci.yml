@@ -1,0 +1,25 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - errorlint
+    - gocritic
+    - misspell
+    - predeclared
+    - revive
+    - testableexamples
+    - unconvert
+
+  exclusions:
+    rules:
+      # Draining an iterator is spelled `for range seq {}` — Go offers no other
+      # form. These blocks are empty on purpose: to wait out a goroutine, to
+      # read a source to its end, or to consume until the context is cancelled.
+      - linters: [revive]
+        text: "empty-block"
+
+issues:
+  # Report every occurrence: a truncated list hides work.
+  max-issues-per-linter: 0
+  max-same-issues: 0

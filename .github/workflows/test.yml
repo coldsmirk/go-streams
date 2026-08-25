@@ -65,7 +65,10 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Pinned, not "latest": the enabled set lives in .golangci.yml, but a
+          # linter release can still change what an enabled rule reports, and CI
+          # should not go red on a day nobody touched the code.
+          version: v2.13.1
           args: --timeout=5m
 
   modernize:
