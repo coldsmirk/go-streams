@@ -72,8 +72,10 @@ func TestRegrouping(t *testing.T) {
 	assert.Equal(t, []int{1, 2}, windows[0], "Window[0]")
 	assert.Equal(t, []int{3, 4}, windows[2], "Window[2]")
 	assert.Empty(t, Window(Of(1), 2).Collect(), "Window shorter than n")
-	// each window must be an independent slice, not a view of a shared buffer
-	assert.NotEqual(t, windows[0], windows[1], "Window reused its buffer across yields")
+	// Consecutive windows advance rather than repeating. They do share the
+	// elements they overlap on, which is the documented contract and is pinned
+	// by TestWindowSharesOverlappingElements.
+	assert.NotEqual(t, windows[0], windows[1], "Window yielded the same window twice")
 
 	assert.Equal(t, []int{1, 2, 3}, Flatten(Of(Of(1, 2), Of(3), Empty[int]())).Collect(), "Flatten")
 }
@@ -192,7 +194,8 @@ func TestSortMatchesSortFunc(t *testing.T) {
 	} {
 		got := Sort(Of(in...)).Collect()
 		want := Of(in...).SortFunc(cmp.Compare[float64]).Collect()
-		require.Lenf(t, got, len(want), "Sort(%v) length", in)
+		require.Lenf(t, got, len(in), "Sort(%v) length", in)
+		require.Lenf(t, want, len(in), "SortFunc(%v) length", in)
 		for i := range got {
 			// NaN is never equal to itself, so assert.Equal cannot express this.
 			assert.Truef(t, sameFloat(got[i], want[i]), "Sort(%v) = %v, want %v", in, got, want)

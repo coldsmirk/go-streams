@@ -4,9 +4,8 @@ import (
 	"iter"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	streams "github.com/coldsmirk/go-streams/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 // The iter contract says yield panics if it is called after returning false, so
@@ -19,6 +18,8 @@ import (
 func breakAfter[T any](t *testing.T, name string, n int, s streams.Stream[T]) {
 	t.Helper()
 	seen := 0
+	// A panic ends the check here, as the original recover-based harness did:
+	// the count below describes a run that completed.
 	if !assert.NotPanicsf(t, func() {
 		for range iter.Seq[T](s) {
 			if seen++; seen == n {
@@ -28,7 +29,7 @@ func breakAfter[T any](t *testing.T, name string, n int, s streams.Stream[T]) {
 	}, "%s: yielding after the consumer stopped", name) {
 		return
 	}
-	assert.Equalf(t, n, seen, "%s: consumed elements before the break", name)
+	assert.Equalf(t, n, seen, "%s: elements consumed before the break", name)
 }
 
 func breakAfter2[K, V any](t *testing.T, name string, n int, s streams.Stream2[K, V]) {
@@ -43,7 +44,7 @@ func breakAfter2[K, V any](t *testing.T, name string, n int, s streams.Stream2[K
 	}, "%s: yielding after the consumer stopped", name) {
 		return
 	}
-	assert.Equalf(t, n, seen, "%s: consumed pairs before the break", name)
+	assert.Equalf(t, n, seen, "%s: pairs consumed before the break", name)
 }
 
 func TestJoinsHonourEarlyStop(t *testing.T) {

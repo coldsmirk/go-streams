@@ -18,25 +18,31 @@ import (
 func breakAfterOne[T any](t *testing.T, name string, s streams.Stream[T]) {
 	t.Helper()
 	n := 0
-	assert.NotPanicsf(t, func() {
+	// A panic ends the check here, as the original recover-based harness did:
+	// the count below describes a run that completed.
+	if !assert.NotPanicsf(t, func() {
 		for range iter.Seq[T](s) {
 			n++
 			break
 		}
-	}, "%s: yielding after the consumer stopped", name)
-	assert.Equalf(t, 1, n, "%s: consumed %d elements before the break, want 1", name, n)
+	}, "%s: yielding after the consumer stopped", name) {
+		return
+	}
+	assert.Equalf(t, 1, n, "%s: elements consumed before the break", name)
 }
 
 func breakAfterOne2[T any](t *testing.T, name string, seq iter.Seq2[T, error]) {
 	t.Helper()
 	n := 0
-	assert.NotPanicsf(t, func() {
+	if !assert.NotPanicsf(t, func() {
 		for range seq {
 			n++
 			break
 		}
-	}, "%s: yielding after the consumer stopped", name)
-	assert.Equalf(t, 1, n, "%s: consumed %d pairs before the break, want 1", name, n)
+	}, "%s: yielding after the consumer stopped", name) {
+		return
+	}
+	assert.Equalf(t, 1, n, "%s: pairs consumed before the break", name)
 }
 
 func TestTextSourcesHonourEarlyStop(t *testing.T) {

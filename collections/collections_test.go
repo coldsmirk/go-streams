@@ -43,7 +43,8 @@ func TestFromPriorityQueueYieldsHeapOrder(t *testing.T) {
 	// Only the head is ordered; the rest is the internal heap layout.
 	head, ok := FromPriorityQueue(q).First()
 	want, _ := q.Peek()
-	assert.Truef(t, ok && head == want, "FromPriorityQueue head = %d, %v, want %d", head, ok, want)
+	assert.True(t, ok, "FromPriorityQueue head")
+	assert.Equal(t, want, head, "FromPriorityQueue head")
 	assert.Equal(t, []int{1, 2, 3}, streams.Sort(FromPriorityQueue(q)).Collect(), "FromPriorityQueue sorted")
 
 	// Iterating must not consume the queue.
@@ -68,8 +69,8 @@ func TestFromEmptyCollections(t *testing.T) {
 
 func TestToCollections(t *testing.T) {
 	set := ToHashSet(streams.Of(1, 2, 2, 3))
-	assert.Truef(t, set.Size() == 3 && set.ContainsAll(1, 2, 3),
-		"ToHashSet = %v, want the three distinct elements", set)
+	assert.Equal(t, 3, set.Size(), "ToHashSet size")
+	assert.Truef(t, set.ContainsAll(1, 2, 3), "ToHashSet = %v, want the three distinct elements", set)
 	assert.Equal(t, []int{1, 2, 3}, ToTreeSet(streams.Of(3, 1, 2, 1), byInt).ToSlice(), "ToTreeSet")
 
 	assert.Equal(t, []int{3, 1, 2}, ToArrayList(streams.Of(3, 1, 2)).ToSlice(), "ToArrayList")

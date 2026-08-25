@@ -59,7 +59,7 @@ func TestStream2Ops(t *testing.T) {
 
 	k, v, ok = s().Find(func(string, int) bool { return false })
 	assert.False(t, ok, "Find with no match")
-	assert.Zero(t, k, "Find with no match returns the zero key")
+	assert.Empty(t, k, "Find with no match returns the zero key")
 	assert.Zero(t, v, "Find with no match returns the zero value")
 
 	assert.True(t, s().Any(func(_ string, v int) bool { return v == 3 }), "Any with a match")
@@ -73,17 +73,17 @@ func TestStream2Ops(t *testing.T) {
 func TestEmpty2ReportsCommaOkNotOptional(t *testing.T) {
 	k, v, ok := Empty2[string, int]().First()
 	assert.False(t, ok, "First")
-	assert.Zero(t, k, "First key")
+	assert.Empty(t, k, "First key")
 	assert.Zero(t, v, "First value")
 
 	k, v, ok = Empty2[string, int]().Last()
 	assert.False(t, ok, "Last")
-	assert.Zero(t, k, "Last key")
+	assert.Empty(t, k, "Last key")
 	assert.Zero(t, v, "Last value")
 
 	k, v, ok = Empty2[string, int]().Find(func(string, int) bool { return true })
 	assert.False(t, ok, "Find")
-	assert.Zero(t, k, "Find key")
+	assert.Empty(t, k, "Find key")
 	assert.Zero(t, v, "Find value")
 
 	assert.False(t, Empty2[string, int]().Any(func(string, int) bool { return true }),

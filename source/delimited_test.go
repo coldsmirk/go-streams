@@ -194,7 +194,7 @@ func TestKeyedComposesWithAnyDelimiter(t *testing.T) {
 	t.Run("header only, and empty", func(t *testing.T) {
 		for _, in := range []string{"name,age\n", ""} {
 			got, err := streams.Try(Keyed(CSV(strings.NewReader(in))))
-			assert.NoErrorf(t, err, "Keyed(%q)", in)
+			require.NoErrorf(t, err, "Keyed(%q)", in)
 			assert.Emptyf(t, got, "Keyed(%q) yielded records, want none", in)
 		}
 	})
@@ -258,11 +258,13 @@ func TestFileReadsAnyFormat(t *testing.T) {
 
 	// A missing file still yields exactly one pair, as every *File twin does.
 	n := 0
+	var last error
 	for _, err := range File(filepath.Join(dir, "nope"), Lines) {
 		n++
-		assert.Error(t, err, "expected an error pair")
+		last = err
 	}
 	assert.Equal(t, 1, n, "missing file yielded the wrong number of pairs, want 1")
+	assert.Error(t, last, "the pair a missing file yields carries the error")
 }
 
 // The lazy bridge end to end: a file feeds a pipeline without being buffered.

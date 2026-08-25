@@ -6,9 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	streams "github.com/coldsmirk/go-streams/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 // srcA and srcB are the two sides of the joins below. The key "x" carries two

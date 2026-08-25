@@ -80,7 +80,7 @@ func TestLinesFileEmpty(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "empty.txt")
 	require.NoError(t, os.WriteFile(path, nil, 0o600))
 	got, err := collect2(LinesFile(path))
-	assert.NoError(t, err, "LinesFile on an empty file, want no error")
+	require.NoError(t, err, "LinesFile on an empty file, want no error")
 	assert.Empty(t, got, "LinesFile on an empty file, want no lines")
 }
 
