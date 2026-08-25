@@ -78,6 +78,9 @@ func Debounce[T any](ctx context.Context, s streams.Stream[T], quiet time.Durati
 					return
 				}
 				pending, waiting = v, true
+				// Resetting without draining timer.C relies on the Go 1.23
+				// timer semantics, under which a stale expiry is never
+				// delivered after Reset.
 				timer.Reset(quiet)
 			case <-timer.C:
 				// The timer runs only while an element is waiting, so a firing

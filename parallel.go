@@ -44,14 +44,22 @@ func Unordered() ParallelOption {
 // microseconds of work per element this is slower than [Stream.Map], and for
 // trivial work it is slower by orders of magnitude. Measure before reaching
 // for it.
+//
+// ParallelMap reads s on a goroutine of its own. Stopping the returned Stream
+// early releases that goroutine at the next point where s yields or ends, so a
+// source that blocks indefinitely, such as [Chan] over a quiet channel, keeps
+// it parked until then. Use [ChanContext] or another source that ends on
+// cancellation where bounded shutdown matters; the documentation of
+// [github.com/coldsmirk/go-streams/v2/temporal] describes the underlying
+// constraint.
 func (s Stream[T]) ParallelMap[R any](fn func(T) R, opts ...ParallelOption) Stream[R] {
 	return parallelRun(s, func(v T) (R, bool) { return fn(v), true }, newParallelConfig(opts))
 }
 
 // ParallelFilter is [Stream.Filter] with pred evaluated concurrently. Elements
 // keep their input order unless [Unordered] is given. pred must be safe for
-// concurrent use. The note on [Stream.ParallelMap] about when concurrency pays
-// applies here too.
+// concurrent use. The notes on [Stream.ParallelMap] about when concurrency
+// pays and about the goroutine that reads s apply here too.
 func (s Stream[T]) ParallelFilter(pred func(T) bool, opts ...ParallelOption) Stream[T] {
 	return parallelRun(s, func(v T) (T, bool) { return v, pred(v) }, newParallelConfig(opts))
 }

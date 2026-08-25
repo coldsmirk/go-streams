@@ -144,6 +144,9 @@ func Session[T any](ctx context.Context, s streams.Stream[T], gap time.Duration)
 					return
 				}
 				session = append(session, v)
+				// Resetting without draining timer.C relies on the Go 1.23
+				// timer semantics, under which a stale expiry is never
+				// delivered after Reset.
 				timer.Reset(gap)
 			case <-timer.C:
 				// The timer runs only while a session is open, so a firing
