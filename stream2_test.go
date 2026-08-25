@@ -39,7 +39,54 @@ func TestStream2Ops(t *testing.T) {
 	if visited != 3 {
 		t.Errorf("ForEach visited %d", visited)
 	}
+
+	if k, v, ok := s().First(); !ok || k != "a" || v != 1 {
+		t.Errorf("First = %v, %v, %v", k, v, ok)
+	}
+	if k, v, ok := s().Last(); !ok || k != "c" || v != 3 {
+		t.Errorf("Last = %v, %v, %v", k, v, ok)
+	}
+	if k, v, ok := Of("a").Zip(Of(1)).Last(); !ok || k != "a" || v != 1 {
+		t.Errorf("Last on a single pair = %v, %v, %v", k, v, ok)
+	}
+	if k, v, ok := s().Find(func(_ string, v int) bool { return v > 1 }); !ok || k != "b" || v != 2 {
+		t.Errorf("Find = %v, %v, %v", k, v, ok)
+	}
+	if k, v, ok := s().Find(func(string, int) bool { return false }); ok || k != "" || v != 0 {
+		t.Errorf("Find with no match = %v, %v, %v, want the zero pair and not ok", k, v, ok)
+	}
+	if !s().Any(func(_ string, v int) bool { return v == 3 }) {
+		t.Error("Any with a match = false")
+	}
+	if s().Any(func(string, int) bool { return false }) {
+		t.Error("Any with no match = true")
+	}
+	if !s().All(func(_ string, v int) bool { return v > 0 }) {
+		t.Error("All with every pair passing = false")
+	}
+	if s().All(func(_ string, v int) bool { return v > 1 }) {
+		t.Error("All with a failing pair = true")
+	}
+
 	eq(t, "Empty2", Empty2[string, int]().Keys().Collect(), nil)
+}
+
+func TestEmpty2ReportsCommaOkNotOptional(t *testing.T) {
+	if k, v, ok := Empty2[string, int]().First(); ok || k != "" || v != 0 {
+		t.Errorf("First = %v, %v, %v", k, v, ok)
+	}
+	if k, v, ok := Empty2[string, int]().Last(); ok || k != "" || v != 0 {
+		t.Errorf("Last = %v, %v, %v", k, v, ok)
+	}
+	if k, v, ok := Empty2[string, int]().Find(func(string, int) bool { return true }); ok || k != "" || v != 0 {
+		t.Errorf("Find = %v, %v, %v", k, v, ok)
+	}
+	if Empty2[string, int]().Any(func(string, int) bool { return true }) {
+		t.Error("Any on an empty Stream2 = true")
+	}
+	if !Empty2[string, int]().All(func(string, int) bool { return false }) {
+		t.Error("All on an empty Stream2 = false")
+	}
 }
 
 func TestPairsAndMapInterop(t *testing.T) {
@@ -66,17 +113,35 @@ func TestPairsAndMapInterop(t *testing.T) {
 }
 
 func TestStream2ShortCircuits(t *testing.T) {
-	consumed := 0
-	src := Range(0, 1000).Peek(func(int) { consumed++ }).Enumerate()
-	src.Take(3).ForEach(func(int, int) {})
-	if consumed != 3 {
-		t.Errorf("Stream2.Take consumed %d, want 3", consumed)
+	count := func(fn func(s Stream2[int, int])) int {
+		n := 0
+		src := Range(0, 1000).Peek(func(int) { n++ }).Enumerate()
+		fn(src)
+		return n
 	}
 
-	consumed = 0
-	Range(0, 1000).Peek(func(int) { consumed++ }).Enumerate().
-		Collapse(func(_, v int) int { return v }).First()
-	if consumed != 1 {
-		t.Errorf("Collapse+First consumed %d, want 1", consumed)
+	if got := count(func(s Stream2[int, int]) { s.Take(3).ForEach(func(int, int) {}) }); got != 3 {
+		t.Errorf("Take consumed %d pairs, want 3", got)
+	}
+	if got := count(func(s Stream2[int, int]) { s.Collapse(func(_, v int) int { return v }).First() }); got != 1 {
+		t.Errorf("Collapse+First consumed %d pairs, want 1", got)
+	}
+	if got := count(func(s Stream2[int, int]) { s.First() }); got != 1 {
+		t.Errorf("First consumed %d pairs, want 1", got)
+	}
+	if got := count(func(s Stream2[int, int]) { s.Find(func(_, v int) bool { return v == 2 }) }); got != 3 {
+		t.Errorf("Find consumed %d pairs, want 3", got)
+	}
+	if got := count(func(s Stream2[int, int]) { s.Any(func(_, v int) bool { return v == 2 }) }); got != 3 {
+		t.Errorf("Any consumed %d pairs, want 3", got)
+	}
+	if got := count(func(s Stream2[int, int]) { s.All(func(_, v int) bool { return v < 2 }) }); got != 3 {
+		t.Errorf("All consumed %d pairs, want 3", got)
+	}
+
+	// an infinite source must stay usable behind a short-circuiting terminal
+	inf := Iterate(1, func(v int) int { return v + 1 }).Enumerate()
+	if k, v, ok := inf.Find(func(_, v int) bool { return v == 5 }); !ok || k != 4 || v != 5 {
+		t.Errorf("Find on an infinite source = %v, %v, %v", k, v, ok)
 	}
 }

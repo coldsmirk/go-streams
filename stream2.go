@@ -13,6 +13,9 @@ type Stream2[K, V any] iter.Seq2[K, V]
 func From2[K, V any](seq iter.Seq2[K, V]) Stream2[K, V] { return Stream2[K, V](seq) }
 
 // Pairs returns a Stream2 over the key-value pairs of m, in unspecified order.
+// An operation that depends on encounter order, such as [Stream2.First] or
+// [Stream2.Take], therefore gives an arbitrary result over the Stream2 it
+// returns.
 func Pairs[M ~map[K]V, K comparable, V any](m M) Stream2[K, V] {
 	return Stream2[K, V](maps.All(m))
 }
@@ -157,6 +160,63 @@ func (s Stream2[K, V]) Fold[A any](init A, fn func(A, K, V) A) A {
 		acc = fn(acc, k, v)
 	}
 	return acc
+}
+
+// First returns the first pair, or false if the Stream2 is empty. It stops
+// after the first pair.
+func (s Stream2[K, V]) First() (K, V, bool) {
+	for k, v := range s {
+		return k, v, true
+	}
+	var zeroK K
+	var zeroV V
+	return zeroK, zeroV, false
+}
+
+// Last returns the last pair, or false if the Stream2 is empty.
+func (s Stream2[K, V]) Last() (K, V, bool) {
+	var lastK K
+	var lastV V
+	empty := true
+	for k, v := range s {
+		lastK, lastV, empty = k, v, false
+	}
+	return lastK, lastV, !empty
+}
+
+// Find returns the first pair for which pred reports true, or false if none
+// does. It stops at the first match.
+func (s Stream2[K, V]) Find(pred func(K, V) bool) (K, V, bool) {
+	for k, v := range s {
+		if pred(k, v) {
+			return k, v, true
+		}
+	}
+	var zeroK K
+	var zeroV V
+	return zeroK, zeroV, false
+}
+
+// Any reports whether pred is true for at least one pair. It stops at the
+// first match.
+func (s Stream2[K, V]) Any(pred func(K, V) bool) bool {
+	for k, v := range s {
+		if pred(k, v) {
+			return true
+		}
+	}
+	return false
+}
+
+// All reports whether pred is true for every pair. It stops at the first pair
+// that fails, and is true for an empty Stream2.
+func (s Stream2[K, V]) All(pred func(K, V) bool) bool {
+	for k, v := range s {
+		if !pred(k, v) {
+			return false
+		}
+	}
+	return true
 }
 
 // CollectMap returns a map of the pairs of s. A later pair overwrites an

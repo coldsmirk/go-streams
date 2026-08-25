@@ -49,7 +49,8 @@ func (s Stream[T]) Reduce(fn func(a, b T) T) (T, bool) {
 	return acc, !empty
 }
 
-// First returns the first element, or false if the Stream is empty.
+// First returns the first element, or false if the Stream is empty. It stops
+// after the first element.
 func (s Stream[T]) First() (T, bool) {
 	for v := range s {
 		return v, true
@@ -68,7 +69,8 @@ func (s Stream[T]) Last() (T, bool) {
 	return last, !empty
 }
 
-// Find returns the first element for which pred reports true.
+// Find returns the first element for which pred reports true, or false if none
+// does. It stops at the first match.
 func (s Stream[T]) Find(pred func(T) bool) (T, bool) {
 	for v := range s {
 		if pred(v) {

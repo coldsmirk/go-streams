@@ -21,7 +21,12 @@
 // [Max] requires cmp.Ordered, while [Stream.MaxFunc] takes a comparison
 // function and works for any element type.
 //
-// The zero Stream is not valid; use [Empty] for an empty sequence.
+// A [Stream2] is the keyed counterpart, defined as [iter.Seq2]. It follows the
+// same split, and element-wise work flows back to a [Stream] through
+// [Stream2.Collapse], [Stream2.Keys] or [Stream2.Values].
+//
+// The zero Stream and the zero Stream2 are not valid; use [Empty] and [Empty2]
+// for an empty sequence.
 //
 // Streams are lazy and single-pass. Each terminal operation consumes the
 // underlying iterator, so a Stream should be traversed once. Construct a new

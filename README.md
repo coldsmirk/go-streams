@@ -108,8 +108,11 @@ Full documentation and runnable examples:
 `Contains`, `Frequency`, `Sum`, `Product`, `Average`, `Chunk`, `Window`,
 `Flatten`, `Concat`, `Merge`, `Interleave`, `Cycle`, `TryMap`, `Ok`, `Try`
 
-**Stream2** — `Keys`, `Values`, `Filter`, `MapKeys`, `MapValues`, `Collapse`,
-`Swap`, `Take`, `Drop`, `ForEach`, `Count`, `Fold`, `CollectMap`
+**Stream2 — Transforming** — `Keys`, `Values`, `Filter`, `MapKeys`,
+`MapValues`, `Collapse`, `Swap`, `Take`, `Drop`
+
+**Stream2 — Consuming** — `ForEach`, `Count`, `Fold`, `First`, `Last`, `Find`,
+`Any`, `All`, `CollectMap`
 
 **Parallel** — `ParallelMap`, `ParallelFilter`, `ParallelForEach`, configured
 with `WithConcurrency` and `Unordered`. Results keep their input order unless
@@ -230,15 +233,17 @@ a slice when buffering is fine.
 iterator. Traverse a Stream once; build a new one to traverse again.
 
 **Laziness is real, and short-circuiting works.** `First`, `Any`, `All`, `Find`
-and `Take` stop the source as soon as they can:
+and `Take` stop the source as soon as they can, on a Stream and a Stream2
+alike:
 
 ```go
 // evaluates the mapping three times, not a thousand
 v, _ := streams.Range(0, 1000).Map(expensive).Filter(pred).First()
 ```
 
-**The zero Stream is not valid.** Use `Empty[T]()`. A nil iterator panics when
-ranged over, exactly as a nil `iter.Seq` does.
+**The zero Stream is not valid.** Use `Empty[T]()`, or `Empty2[K, V]()` for a
+Stream2. A nil iterator panics when ranged over, exactly as a nil `iter.Seq`
+does.
 
 **Some operations must buffer.** `Sort`, `SortFunc`, `SortStableFunc`,
 `Reverse` and `Cycle` read the whole sequence, so they cannot be used on an
