@@ -2,99 +2,80 @@ package streams
 
 import (
 	"cmp"
-	"errors"
 	"iter"
 	"math"
-	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConstrainedFunctionsPairWithFuncMethods(t *testing.T) {
 	// package function: element type is constrained, like slices.Max
-	if v, ok := Max(Of(3, 9, 4)); !ok || v != 9 {
-		t.Errorf("Max = %d, %v", v, ok)
-	}
-	if v, ok := Min(Of(3, 9, 4)); !ok || v != 3 {
-		t.Errorf("Min = %d, %v", v, ok)
-	}
-	if _, ok := Max(Empty[int]()); ok {
-		t.Error("Max on empty must report false")
-	}
+	maxV, ok := Max(Of(3, 9, 4))
+	assert.True(t, ok, "Max")
+	assert.Equal(t, 9, maxV, "Max")
+
+	minV, ok := Min(Of(3, 9, 4))
+	assert.True(t, ok, "Min")
+	assert.Equal(t, 3, minV, "Min")
+
+	_, ok = Max(Empty[int]())
+	assert.False(t, ok, "Max on empty must report false")
+
 	// method: no constraint, caller supplies the comparison
 	oldest, ok := Of(users...).MaxFunc(func(a, b user) int { return cmp.Compare(a.Age, b.Age) })
-	if !ok || oldest.Name != "Ken" {
-		t.Errorf("MaxFunc = %v", oldest)
-	}
+	assert.True(t, ok, "MaxFunc")
+	assert.Equal(t, "Ken", oldest.Name, "MaxFunc")
 
-	eq(t, "Sort", Sort(Of(3, 1, 2)).Collect(), []int{1, 2, 3})
-	eq(t, "Sort strings", Sort(Of("b", "a")).Collect(), []string{"a", "b"})
-	eq(t, "Compact", Compact(Of(1, 1, 2, 2, 1)).Collect(), []int{1, 2, 1})
-	eq(t, "Distinct", Distinct(Of(1, 1, 2, 2, 1)).Collect(), []int{1, 2})
+	assert.Equal(t, []int{1, 2, 3}, Sort(Of(3, 1, 2)).Collect(), "Sort")
+	assert.Equal(t, []string{"a", "b"}, Sort(Of("b", "a")).Collect(), "Sort strings")
+	assert.Equal(t, []int{1, 2, 1}, Compact(Of(1, 1, 2, 2, 1)).Collect(), "Compact")
+	assert.Equal(t, []int{1, 2}, Distinct(Of(1, 1, 2, 2, 1)).Collect(), "Distinct")
 
-	if !Contains(Of(1, 2, 3), 2) || Contains(Of(1, 2, 3), 9) {
-		t.Error("Contains")
-	}
-	f := Frequency(Of("a", "b", "a"))
-	if f["a"] != 2 || f["b"] != 1 {
-		t.Errorf("Frequency = %v", f)
-	}
+	assert.True(t, Contains(Of(1, 2, 3), 2), "Contains a present element")
+	assert.False(t, Contains(Of(1, 2, 3), 9), "Contains an absent element")
+	assert.Equal(t, map[string]int{"a": 2, "b": 1}, Frequency(Of("a", "b", "a")), "Frequency")
 }
 
 func TestNumericAggregates(t *testing.T) {
-	if got := Sum(Of(1, 2, 3)); got != 6 {
-		t.Errorf("Sum = %d", got)
-	}
-	if got := Sum(Empty[int]()); got != 0 {
-		t.Errorf("Sum of empty = %d", got)
-	}
-	if got := Sum(Of(1.5, 2.5)); got != 4.0 {
-		t.Errorf("Sum float = %v", got)
-	}
-	if got := Product(Of(2, 3, 4)); got != 24 {
-		t.Errorf("Product = %d", got)
-	}
-	if got := Product(Empty[int]()); got != 1 {
-		t.Errorf("Product of empty = %d, want the multiplicative identity", got)
-	}
-	if got, ok := Average(Of(1, 2, 3, 4)); !ok || got != 2.5 {
-		t.Errorf("Average = %v, %v", got, ok)
-	}
-	if _, ok := Average(Empty[int]()); ok {
-		t.Error("Average on empty must report false")
-	}
+	assert.Equal(t, 6, Sum(Of(1, 2, 3)), "Sum")
+	assert.Equal(t, 0, Sum(Empty[int]()), "Sum of empty")
+	assert.Equal(t, 4.0, Sum(Of(1.5, 2.5)), "Sum float")
+	assert.Equal(t, 24, Product(Of(2, 3, 4)), "Product")
+	assert.Equal(t, 1, Product(Empty[int]()), "Product of empty is the multiplicative identity")
+
+	avg, ok := Average(Of(1, 2, 3, 4))
+	assert.True(t, ok, "Average")
+	assert.Equal(t, 2.5, avg, "Average")
+
+	_, ok = Average(Empty[int]())
+	assert.False(t, ok, "Average on empty must report false")
+
 	// a defined type with a numeric underlying type satisfies Numeric
 	type celsius float64
-	if got := Sum(Of[celsius](1, 2)); got != 3 {
-		t.Errorf("Sum of defined type = %v", got)
-	}
+	assert.Equal(t, celsius(3), Sum(Of[celsius](1, 2)), "Sum of a defined type")
 }
 
 func TestRegrouping(t *testing.T) {
-	eq(t, "Chunk sizes", Chunk(Of(1, 2, 3, 4, 5), 2).Map(func(c []int) int { return len(c) }).Collect(),
-		[]int{2, 2, 1})
+	assert.Equal(t, []int{2, 2, 1},
+		Chunk(Of(1, 2, 3, 4, 5), 2).Map(func(c []int) int { return len(c) }).Collect(), "Chunk sizes")
 	first, _ := Chunk(Of(1, 2, 3), 2).First()
-	eq(t, "Chunk content", first, []int{1, 2})
-	if got := Chunk(Empty[int](), 2).Collect(); len(got) != 0 {
-		t.Errorf("Chunk of empty = %v", got)
-	}
-	eq(t, "Chunk exact", Chunk(Of(1, 2), 2).Map(func(c []int) int { return len(c) }).Collect(), []int{2})
+	assert.Equal(t, []int{1, 2}, first, "Chunk content")
+	assert.Empty(t, Chunk(Empty[int](), 2).Collect(), "Chunk of empty")
+	assert.Equal(t, []int{2},
+		Chunk(Of(1, 2), 2).Map(func(c []int) int { return len(c) }).Collect(), "Chunk exact")
 
 	// Window slides one element at a time and yields nothing if the input is short
 	windows := Window(Of(1, 2, 3, 4), 2).Collect()
-	if len(windows) != 3 {
-		t.Fatalf("Window count = %d, want 3", len(windows))
-	}
-	eq(t, "Window[0]", windows[0], []int{1, 2})
-	eq(t, "Window[2]", windows[2], []int{3, 4})
-	if got := Window(Of(1), 2).Collect(); len(got) != 0 {
-		t.Errorf("Window shorter than n = %v", got)
-	}
+	require.Len(t, windows, 3, "Window count")
+	assert.Equal(t, []int{1, 2}, windows[0], "Window[0]")
+	assert.Equal(t, []int{3, 4}, windows[2], "Window[2]")
+	assert.Empty(t, Window(Of(1), 2).Collect(), "Window shorter than n")
 	// each window must be an independent slice, not a view of a shared buffer
-	if slices.Equal(windows[0], windows[1]) {
-		t.Error("Window reused its buffer across yields")
-	}
+	assert.NotEqual(t, windows[0], windows[1], "Window reused its buffer across yields")
 
-	eq(t, "Flatten", Flatten(Of(Of(1, 2), Of(3), Empty[int]())).Collect(), []int{1, 2, 3})
+	assert.Equal(t, []int{1, 2, 3}, Flatten(Of(Of(1, 2), Of(3), Empty[int]())).Collect(), "Flatten")
 }
 
 func TestChunkAndWindowRejectNonPositive(t *testing.T) {
@@ -105,32 +86,25 @@ func TestChunkAndWindowRejectNonPositive(t *testing.T) {
 		{"Chunk", func() { Chunk(Of(1), 0) }},
 		{"Window", func() { Window(Of(1), 0) }},
 	} {
-		func() {
-			defer func() {
-				if recover() == nil {
-					t.Errorf("%s(n=0) must panic", tc.name)
-				}
-			}()
-			tc.call()
-		}()
+		assert.Panicsf(t, tc.call, "%s(n=0) must panic", tc.name)
 	}
 }
 
 func TestCombiningStreams(t *testing.T) {
-	eq(t, "Concat", Concat(Of(1, 2), Of(3), Empty[int]()).Collect(), []int{1, 2, 3})
-	eq(t, "Concat none", Concat[int]().Collect(), nil)
-	eq(t, "Interleave", Interleave(Of(1, 3), Of(2, 4)).Collect(), []int{1, 2, 3, 4})
-	eq(t, "Interleave uneven", Interleave(Of(1), Of(2, 4, 6)).Collect(), []int{1, 2, 4, 6})
+	assert.Equal(t, []int{1, 2, 3}, Concat(Of(1, 2), Of(3), Empty[int]()).Collect(), "Concat")
+	assert.Empty(t, Concat[int]().Collect(), "Concat none")
+	assert.Equal(t, []int{1, 2, 3, 4}, Interleave(Of(1, 3), Of(2, 4)).Collect(), "Interleave")
+	assert.Equal(t, []int{1, 2, 4, 6}, Interleave(Of(1), Of(2, 4, 6)).Collect(), "Interleave uneven")
 
 	byInt := func(a, b int) int { return a - b }
-	eq(t, "Merge", Merge(byInt, Of(1, 4, 7), Of(2, 5), Of(3, 6)).Collect(),
-		[]int{1, 2, 3, 4, 5, 6, 7})
-	eq(t, "Merge one", Merge(byInt, Of(3, 1)).Collect(), []int{3, 1})
-	eq(t, "Merge none", Merge(byInt).Collect(), nil)
-	eq(t, "Merge with empty", Merge(byInt, Empty[int](), Of(1, 2)).Collect(), []int{1, 2})
+	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7},
+		Merge(byInt, Of(1, 4, 7), Of(2, 5), Of(3, 6)).Collect(), "Merge")
+	assert.Equal(t, []int{3, 1}, Merge(byInt, Of(3, 1)).Collect(), "Merge one")
+	assert.Empty(t, Merge(byInt).Collect(), "Merge none")
+	assert.Equal(t, []int{1, 2}, Merge(byInt, Empty[int](), Of(1, 2)).Collect(), "Merge with empty")
 
-	eq(t, "Cycle", Cycle(Of(1, 2)).Take(5).Collect(), []int{1, 2, 1, 2, 1})
-	eq(t, "Cycle empty", Cycle(Empty[int]()).Take(3).Collect(), nil)
+	assert.Equal(t, []int{1, 2, 1, 2, 1}, Cycle(Of(1, 2)).Take(5).Collect(), "Cycle")
+	assert.Empty(t, Cycle(Empty[int]()).Take(3).Collect(), "Cycle empty")
 }
 
 func TestFallibleSequences(t *testing.T) {
@@ -141,16 +115,12 @@ func TestFallibleSequences(t *testing.T) {
 		return len(s), nil
 	}
 	got, err := Try(TryMap(Of("aa", "bbb"), parse))
-	if err != nil {
-		t.Fatalf("Try returned %v", err)
-	}
-	eq(t, "Try values", got, []int{2, 3})
+	require.NoError(t, err, "Try")
+	assert.Equal(t, []int{2, 3}, got, "Try values")
 
 	partial, err := Try(TryMap(Of("aa", "bad", "cc"), parse))
-	if !errors.Is(err, errBad) {
-		t.Fatalf("Try err = %v, want errBad", err)
-	}
-	eq(t, "Try stops at the error", partial, []int{2})
+	require.ErrorIs(t, err, errBad, "Try")
+	assert.Equal(t, []int{2}, partial, "Try stops at the error")
 
 	// The Try call above only compiles because TryMap returns exactly
 	// iter.Seq2[int, error]; being a plain stdlib type, it also ranges directly.
@@ -158,9 +128,7 @@ func TestFallibleSequences(t *testing.T) {
 	for range TryMap(Of("a", "bad"), parse) {
 		seen++
 	}
-	if seen != 2 {
-		t.Errorf("ranged over %d pairs, want 2", seen)
-	}
+	assert.Equal(t, 2, seen, "pairs ranged over")
 }
 
 // Min and Max no longer delegate to their Func twins, so their NaN ordering is
@@ -180,29 +148,29 @@ func TestMinMaxNaNOrdering(t *testing.T) {
 		{name: "NaN middle", in: []float64{1, nan, 2}, min: nan, max: 2},
 		{name: "NaN last", in: []float64{2, 1, nan}, min: nan, max: 2},
 		{name: "all NaN", in: []float64{nan, nan}, min: nan, max: nan},
-		{name: "infinities", in: []float64{math.Inf(-1), 0, math.Inf(1), nan},
-			min: nan, max: math.Inf(1)},
+		{
+			name: "infinities", in: []float64{math.Inf(-1), 0, math.Inf(1), nan},
+			min: nan, max: math.Inf(1),
+		},
 		{name: "empty", in: nil, empty: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			gotMin, okMin := Min(Of(tc.in...))
 			gotMax, okMax := Max(Of(tc.in...))
 			if tc.empty {
-				if okMin || okMax {
-					t.Fatalf("empty must report false, got %v %v", okMin, okMax)
-				}
+				require.False(t, okMin, "empty must report false")
+				require.False(t, okMax, "empty must report false")
 				return
 			}
 			// Compare against cmp.Compare, the ordering the delegating
 			// implementation used, so any drift shows up here.
 			wantMin, _ := Of(tc.in...).MinFunc(cmp.Compare[float64])
 			wantMax, _ := Of(tc.in...).MaxFunc(cmp.Compare[float64])
-			if !sameFloat(gotMin, wantMin) || !sameFloat(gotMin, tc.min) {
-				t.Errorf("Min = %v, want %v (MinFunc says %v)", gotMin, tc.min, wantMin)
-			}
-			if !sameFloat(gotMax, wantMax) || !sameFloat(gotMax, tc.max) {
-				t.Errorf("Max = %v, want %v (MaxFunc says %v)", gotMax, tc.max, wantMax)
-			}
+			// NaN is never equal to itself, so assert.Equal cannot express this.
+			assert.Truef(t, sameFloat(gotMin, wantMin) && sameFloat(gotMin, tc.min),
+				"Min = %v, want %v (MinFunc says %v)", gotMin, tc.min, wantMin)
+			assert.Truef(t, sameFloat(gotMax, wantMax) && sameFloat(gotMax, tc.max),
+				"Max = %v, want %v (MaxFunc says %v)", gotMax, tc.max, wantMax)
 		})
 	}
 }
@@ -224,14 +192,10 @@ func TestSortMatchesSortFunc(t *testing.T) {
 	} {
 		got := Sort(Of(in...)).Collect()
 		want := Of(in...).SortFunc(cmp.Compare[float64]).Collect()
-		if len(got) != len(want) {
-			t.Fatalf("Sort(%v) length = %d, want %d", in, len(got), len(want))
-		}
+		require.Lenf(t, got, len(want), "Sort(%v) length", in)
 		for i := range got {
-			if !sameFloat(got[i], want[i]) {
-				t.Errorf("Sort(%v) = %v, want %v", in, got, want)
-				break
-			}
+			// NaN is never equal to itself, so assert.Equal cannot express this.
+			assert.Truef(t, sameFloat(got[i], want[i]), "Sort(%v) = %v, want %v", in, got, want)
 		}
 	}
 }
@@ -260,42 +224,30 @@ func TestOk(t *testing.T) {
 	t.Run("passes the values through", func(t *testing.T) {
 		seq, _ := fallible(3, -1)
 		s, err := Ok(seq)
-		eq(t, "values", s.Collect(), []int{0, 1, 2})
-		if err() != nil {
-			t.Errorf("err = %v, want nil", err())
-		}
+		assert.Equal(t, []int{0, 1, 2}, s.Collect(), "values")
+		assert.NoError(t, err())
 	})
 
 	t.Run("stops at the first error and reports it", func(t *testing.T) {
 		seq, _ := fallible(10, 2)
 		s, err := Ok(seq)
-		eq(t, "values before the error", s.Collect(), []int{0, 1})
-		if !errors.Is(err(), errBad) {
-			t.Errorf("err = %v, want errBad", err())
-		}
+		assert.Equal(t, []int{0, 1}, s.Collect(), "values before the error")
+		assert.ErrorIs(t, err(), errBad)
 	})
 
 	t.Run("reads only what the consumer asks for", func(t *testing.T) {
 		seq, read := fallible(1_000_000, -1)
 		s, err := Ok(seq)
 		got := s.Filter(func(i int) bool { return i%2 == 0 }).Take(3).Collect()
-		eq(t, "values", got, []int{0, 2, 4})
-		if *read != 5 {
-			t.Errorf("consumed %d elements of the source, want 5 -- Ok is buffering", *read)
-		}
-		if err() != nil {
-			t.Errorf("err = %v, want nil", err())
-		}
+		assert.Equal(t, []int{0, 2, 4}, got, "values")
+		assert.Equal(t, 5, *read, "elements of the source consumed -- more means Ok is buffering")
+		assert.NoError(t, err())
 	})
 
 	t.Run("an empty source is not an error", func(t *testing.T) {
 		s, err := Ok(func(_ func(int, error) bool) {})
-		if got := s.Collect(); len(got) != 0 {
-			t.Errorf("values = %v", got)
-		}
-		if err() != nil {
-			t.Errorf("err = %v, want nil", err())
-		}
+		assert.Empty(t, s.Collect(), "values")
+		assert.NoError(t, err())
 	})
 }
 
@@ -303,17 +255,16 @@ func TestKeyBy(t *testing.T) {
 	s := Of("apple", "banana", "avocado")
 	initial := func(v string) string { return v[:1] }
 
-	eq(t, "keys", s.KeyBy(initial).Keys().Collect(), []string{"a", "b", "a"})
-	eq(t, "values", s.KeyBy(initial).Values().Collect(),
-		[]string{"apple", "banana", "avocado"})
-	eq(t, "empty", Empty[string]().KeyBy(initial).Keys().Collect(), nil)
+	assert.Equal(t, []string{"a", "b", "a"}, s.KeyBy(initial).Keys().Collect(), "keys")
+	assert.Equal(t, []string{"apple", "banana", "avocado"},
+		s.KeyBy(initial).Values().Collect(), "values")
+	assert.Empty(t, Empty[string]().KeyBy(initial).Keys().Collect(), "empty")
 
 	// The key type need not be comparable at this point; only the consumer
 	// that groups by it needs that.
 	type box struct{ n []int }
-	if got := Of(1, 2).KeyBy(func(i int) box { return box{[]int{i}} }).Count(); got != 2 {
-		t.Errorf("count = %d", got)
-	}
+	assert.Equal(t, 2, Of(1, 2).KeyBy(func(i int) box { return box{[]int{i}} }).Count(),
+		"a key type that is not comparable")
 
 	// Lazy: an infinite source stays usable.
 	consumed := 0
@@ -323,8 +274,6 @@ func TestKeyBy(t *testing.T) {
 		Take(2).
 		Values().
 		Collect()
-	eq(t, "lazy", got, []int{0, 1})
-	if consumed != 2 {
-		t.Errorf("consumed %d, want 2", consumed)
-	}
+	assert.Equal(t, []int{0, 1}, got, "lazy")
+	assert.Equal(t, 2, consumed, "elements consumed")
 }

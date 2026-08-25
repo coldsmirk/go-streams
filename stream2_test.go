@@ -5,6 +5,8 @@ import (
 	"maps"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStream2Ops(t *testing.T) {
@@ -12,104 +14,101 @@ func TestStream2Ops(t *testing.T) {
 		return Of("a", "b", "c").Zip(Of(1, 2, 3)).Swap().Swap()
 	}
 
-	eq(t, "Keys", s().Keys().Collect(), []string{"a", "b", "c"})
-	eq(t, "Values", s().Values().Collect(), []int{1, 2, 3})
-	eq(t, "Filter", s().Filter(func(_ string, v int) bool { return v > 1 }).Keys().Collect(),
-		[]string{"b", "c"})
-	eq(t, "MapKeys", s().MapKeys(func(k string) int { return len(k) }).Keys().Collect(),
-		[]int{1, 1, 1})
-	eq(t, "MapValues", s().MapValues(strconv.Itoa).Values().Collect(),
-		[]string{"1", "2", "3"})
-	eq(t, "Collapse", s().Collapse(func(k string, v int) string { return k + strconv.Itoa(v) }).Collect(),
-		[]string{"a1", "b2", "c3"})
-	eq(t, "Swap", s().Swap().Keys().Collect(), []int{1, 2, 3})
-	eq(t, "Take", s().Take(2).Keys().Collect(), []string{"a", "b"})
-	eq(t, "Take 0", s().Take(0).Keys().Collect(), nil)
-	eq(t, "Drop", s().Drop(1).Keys().Collect(), []string{"b", "c"})
-	eq(t, "Drop all", s().Drop(5).Keys().Collect(), nil)
+	assert.Equal(t, []string{"a", "b", "c"}, s().Keys().Collect(), "Keys")
+	assert.Equal(t, []int{1, 2, 3}, s().Values().Collect(), "Values")
+	assert.Equal(t, []string{"b", "c"},
+		s().Filter(func(_ string, v int) bool { return v > 1 }).Keys().Collect(), "Filter")
+	assert.Equal(t, []int{1, 1, 1},
+		s().MapKeys(func(k string) int { return len(k) }).Keys().Collect(), "MapKeys")
+	assert.Equal(t, []string{"1", "2", "3"},
+		s().MapValues(strconv.Itoa).Values().Collect(), "MapValues")
+	assert.Equal(t, []string{"a1", "b2", "c3"},
+		s().Collapse(func(k string, v int) string { return k + strconv.Itoa(v) }).Collect(), "Collapse")
+	assert.Equal(t, []int{1, 2, 3}, s().Swap().Keys().Collect(), "Swap")
+	assert.Equal(t, []string{"a", "b"}, s().Take(2).Keys().Collect(), "Take")
+	assert.Empty(t, s().Take(0).Keys().Collect(), "Take 0")
+	assert.Equal(t, []string{"b", "c"}, s().Drop(1).Keys().Collect(), "Drop")
+	assert.Empty(t, s().Drop(5).Keys().Collect(), "Drop all")
 
-	if got := s().Count(); got != 3 {
-		t.Errorf("Count = %d", got)
-	}
-	if got := s().Fold(0, func(a int, _ string, v int) int { return a + v }); got != 6 {
-		t.Errorf("Fold = %d", got)
-	}
+	assert.Equal(t, 3, s().Count(), "Count")
+	assert.Equal(t, 6, s().Fold(0, func(a int, _ string, v int) int { return a + v }), "Fold")
+
 	visited := 0
 	s().ForEach(func(string, int) { visited++ })
-	if visited != 3 {
-		t.Errorf("ForEach visited %d", visited)
-	}
+	assert.Equal(t, 3, visited, "pairs ForEach visited")
 
-	if k, v, ok := s().First(); !ok || k != "a" || v != 1 {
-		t.Errorf("First = %v, %v, %v", k, v, ok)
-	}
-	if k, v, ok := s().Last(); !ok || k != "c" || v != 3 {
-		t.Errorf("Last = %v, %v, %v", k, v, ok)
-	}
-	if k, v, ok := Of("a").Zip(Of(1)).Last(); !ok || k != "a" || v != 1 {
-		t.Errorf("Last on a single pair = %v, %v, %v", k, v, ok)
-	}
-	if k, v, ok := s().Find(func(_ string, v int) bool { return v > 1 }); !ok || k != "b" || v != 2 {
-		t.Errorf("Find = %v, %v, %v", k, v, ok)
-	}
-	if k, v, ok := s().Find(func(string, int) bool { return false }); ok || k != "" || v != 0 {
-		t.Errorf("Find with no match = %v, %v, %v, want the zero pair and not ok", k, v, ok)
-	}
-	if !s().Any(func(_ string, v int) bool { return v == 3 }) {
-		t.Error("Any with a match = false")
-	}
-	if s().Any(func(string, int) bool { return false }) {
-		t.Error("Any with no match = true")
-	}
-	if !s().All(func(_ string, v int) bool { return v > 0 }) {
-		t.Error("All with every pair passing = false")
-	}
-	if s().All(func(_ string, v int) bool { return v > 1 }) {
-		t.Error("All with a failing pair = true")
-	}
+	k, v, ok := s().First()
+	assert.True(t, ok, "First")
+	assert.Equal(t, "a", k, "First key")
+	assert.Equal(t, 1, v, "First value")
 
-	eq(t, "Empty2", Empty2[string, int]().Keys().Collect(), nil)
+	k, v, ok = s().Last()
+	assert.True(t, ok, "Last")
+	assert.Equal(t, "c", k, "Last key")
+	assert.Equal(t, 3, v, "Last value")
+
+	k, v, ok = Of("a").Zip(Of(1)).Last()
+	assert.True(t, ok, "Last on a single pair")
+	assert.Equal(t, "a", k, "Last key on a single pair")
+	assert.Equal(t, 1, v, "Last value on a single pair")
+
+	k, v, ok = s().Find(func(_ string, v int) bool { return v > 1 })
+	assert.True(t, ok, "Find")
+	assert.Equal(t, "b", k, "Find key")
+	assert.Equal(t, 2, v, "Find value")
+
+	k, v, ok = s().Find(func(string, int) bool { return false })
+	assert.False(t, ok, "Find with no match")
+	assert.Zero(t, k, "Find with no match returns the zero key")
+	assert.Zero(t, v, "Find with no match returns the zero value")
+
+	assert.True(t, s().Any(func(_ string, v int) bool { return v == 3 }), "Any with a match")
+	assert.False(t, s().Any(func(string, int) bool { return false }), "Any with no match")
+	assert.True(t, s().All(func(_ string, v int) bool { return v > 0 }), "All with every pair passing")
+	assert.False(t, s().All(func(_ string, v int) bool { return v > 1 }), "All with a failing pair")
+
+	assert.Empty(t, Empty2[string, int]().Keys().Collect(), "Empty2")
 }
 
 func TestEmpty2ReportsCommaOkNotOptional(t *testing.T) {
-	if k, v, ok := Empty2[string, int]().First(); ok || k != "" || v != 0 {
-		t.Errorf("First = %v, %v, %v", k, v, ok)
-	}
-	if k, v, ok := Empty2[string, int]().Last(); ok || k != "" || v != 0 {
-		t.Errorf("Last = %v, %v, %v", k, v, ok)
-	}
-	if k, v, ok := Empty2[string, int]().Find(func(string, int) bool { return true }); ok || k != "" || v != 0 {
-		t.Errorf("Find = %v, %v, %v", k, v, ok)
-	}
-	if Empty2[string, int]().Any(func(string, int) bool { return true }) {
-		t.Error("Any on an empty Stream2 = true")
-	}
-	if !Empty2[string, int]().All(func(string, int) bool { return false }) {
-		t.Error("All on an empty Stream2 = false")
-	}
+	k, v, ok := Empty2[string, int]().First()
+	assert.False(t, ok, "First")
+	assert.Zero(t, k, "First key")
+	assert.Zero(t, v, "First value")
+
+	k, v, ok = Empty2[string, int]().Last()
+	assert.False(t, ok, "Last")
+	assert.Zero(t, k, "Last key")
+	assert.Zero(t, v, "Last value")
+
+	k, v, ok = Empty2[string, int]().Find(func(string, int) bool { return true })
+	assert.False(t, ok, "Find")
+	assert.Zero(t, k, "Find key")
+	assert.Zero(t, v, "Find value")
+
+	assert.False(t, Empty2[string, int]().Any(func(string, int) bool { return true }),
+		"Any on an empty Stream2")
+	assert.True(t, Empty2[string, int]().All(func(string, int) bool { return false }),
+		"All on an empty Stream2")
 }
 
 func TestPairsAndMapInterop(t *testing.T) {
 	m := map[string]int{"a": 1, "b": 2, "c": 3}
 	// Pairs accepts any map type whose underlying type is map[K]V
 	type scores map[string]int
-	if got := Pairs(scores(m)).Count(); got != 3 {
-		t.Errorf("Pairs on a defined map type = %d", got)
-	}
+	assert.Equal(t, 3, Pairs(scores(m)).Count(), "Pairs on a defined map type")
+
 	// round-trip through the standard library
 	doubled := Pairs(m).MapValues(func(v int) int { return v * 2 })
 	back := maps.Collect(iter.Seq2[string, int](doubled))
-	if back["b"] != 4 || len(back) != 3 {
-		t.Errorf("round trip = %v", back)
-	}
+	assert.Equal(t, map[string]int{"a": 2, "b": 4, "c": 6}, back, "round trip")
+
 	// CollectMap performs the same conversion without naming the types
-	if got := CollectMap(Pairs(m).MapValues(func(v int) int { return v * 2 })); got["c"] != 6 || len(got) != 3 {
-		t.Errorf("CollectMap = %v", got)
-	}
+	assert.Equal(t, map[string]int{"a": 2, "b": 4, "c": 6},
+		CollectMap(Pairs(m).MapValues(func(v int) int { return v * 2 })), "CollectMap")
+
 	// From2 infers K and V
-	if got := From2(maps.All(m)).Count(); got != 3 {
-		t.Errorf("From2 = %d", got)
-	}
+	assert.Equal(t, 3, From2(maps.All(m)).Count(), "From2")
 }
 
 func TestStream2ShortCircuits(t *testing.T) {
@@ -120,28 +119,27 @@ func TestStream2ShortCircuits(t *testing.T) {
 		return n
 	}
 
-	if got := count(func(s Stream2[int, int]) { s.Take(3).ForEach(func(int, int) {}) }); got != 3 {
-		t.Errorf("Take consumed %d pairs, want 3", got)
-	}
-	if got := count(func(s Stream2[int, int]) { s.Collapse(func(_, v int) int { return v }).First() }); got != 1 {
-		t.Errorf("Collapse+First consumed %d pairs, want 1", got)
-	}
-	if got := count(func(s Stream2[int, int]) { s.First() }); got != 1 {
-		t.Errorf("First consumed %d pairs, want 1", got)
-	}
-	if got := count(func(s Stream2[int, int]) { s.Find(func(_, v int) bool { return v == 2 }) }); got != 3 {
-		t.Errorf("Find consumed %d pairs, want 3", got)
-	}
-	if got := count(func(s Stream2[int, int]) { s.Any(func(_, v int) bool { return v == 2 }) }); got != 3 {
-		t.Errorf("Any consumed %d pairs, want 3", got)
-	}
-	if got := count(func(s Stream2[int, int]) { s.All(func(_, v int) bool { return v < 2 }) }); got != 3 {
-		t.Errorf("All consumed %d pairs, want 3", got)
-	}
+	assert.Equal(t, 3, count(func(s Stream2[int, int]) {
+		s.Take(3).ForEach(func(int, int) {})
+	}), "pairs Take consumed")
+	assert.Equal(t, 1, count(func(s Stream2[int, int]) {
+		s.Collapse(func(_, v int) int { return v }).First()
+	}), "pairs Collapse+First consumed")
+	assert.Equal(t, 1, count(func(s Stream2[int, int]) { s.First() }), "pairs First consumed")
+	assert.Equal(t, 3, count(func(s Stream2[int, int]) {
+		s.Find(func(_, v int) bool { return v == 2 })
+	}), "pairs Find consumed")
+	assert.Equal(t, 3, count(func(s Stream2[int, int]) {
+		s.Any(func(_, v int) bool { return v == 2 })
+	}), "pairs Any consumed")
+	assert.Equal(t, 3, count(func(s Stream2[int, int]) {
+		s.All(func(_, v int) bool { return v < 2 })
+	}), "pairs All consumed")
 
 	// an infinite source must stay usable behind a short-circuiting terminal
 	inf := Iterate(1, func(v int) int { return v + 1 }).Enumerate()
-	if k, v, ok := inf.Find(func(_, v int) bool { return v == 5 }); !ok || k != 4 || v != 5 {
-		t.Errorf("Find on an infinite source = %v, %v, %v", k, v, ok)
-	}
+	k, v, ok := inf.Find(func(_, v int) bool { return v == 5 })
+	assert.True(t, ok, "Find on an infinite source")
+	assert.Equal(t, 4, k, "Find key on an infinite source")
+	assert.Equal(t, 5, v, "Find value on an infinite source")
 }

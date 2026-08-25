@@ -2,13 +2,14 @@ package temporal
 
 import (
 	"context"
-	"errors"
 	"runtime"
 	"slices"
 	"testing"
 	"time"
 
 	streams "github.com/coldsmirk/go-streams/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // The tests below are written to survive a loaded machine: a slow scheduler may
@@ -40,12 +41,7 @@ func countGoroutines() int {
 
 func increasing(t *testing.T, name string, got []int) {
 	t.Helper()
-	for i := 1; i < len(got); i++ {
-		if got[i] <= got[i-1] {
-			t.Errorf("%s = %v, want strictly increasing", name, got)
-			return
-		}
-	}
+	assert.IsIncreasingf(t, got, "%s = %v, want strictly increasing", name, got)
 }
 
 func flatten(windows [][]int) []int {
@@ -63,13 +59,11 @@ func TestThrottleEmitsEveryElementPaced(t *testing.T) {
 	got := Throttle(t.Context(), streams.Of(1, 2, 3, 4), interval).Collect()
 	elapsed := time.Since(start)
 
-	if want := []int{1, 2, 3, 4}; !slices.Equal(got, want) {
-		t.Errorf("Throttle = %v, want %v", got, want)
-	}
+	want := []int{1, 2, 3, 4}
+	assert.Equalf(t, want, got, "Throttle = %v, want %v", got, want)
 	// The first element is free, the other three each wait an interval.
-	if atLeast := 3*interval - 10*time.Millisecond; elapsed < atLeast {
-		t.Errorf("Throttle took %v, want at least %v", elapsed, atLeast)
-	}
+	atLeast := 3*interval - 10*time.Millisecond
+	assert.GreaterOrEqualf(t, elapsed, atLeast, "Throttle took %v, want at least %v", elapsed, atLeast)
 }
 
 func TestThrottleEmitsTheFirstElementImmediately(t *testing.T) {
@@ -79,12 +73,9 @@ func TestThrottleEmitsTheFirstElementImmediately(t *testing.T) {
 	got, ok := Throttle(t.Context(), streams.Of(7), time.Second).First()
 	elapsed := time.Since(start)
 
-	if !ok || got != 7 {
-		t.Errorf("Throttle first = %v, %v, want 7, true", got, ok)
-	}
-	if elapsed > 500*time.Millisecond {
-		t.Errorf("Throttle held the first element for %v", elapsed)
-	}
+	assert.Truef(t, ok, "Throttle first = %v, %v, want 7, true", got, ok)
+	assert.Equalf(t, 7, got, "Throttle first = %v, %v, want 7, true", got, ok)
+	assert.LessOrEqualf(t, elapsed, 500*time.Millisecond, "Throttle held the first element for %v", elapsed)
 }
 
 func TestDelayShiftsEveryElement(t *testing.T) {
@@ -94,12 +85,10 @@ func TestDelayShiftsEveryElement(t *testing.T) {
 	got := Delay(t.Context(), streams.Of(1, 2, 3), d).Collect()
 	elapsed := time.Since(start)
 
-	if want := []int{1, 2, 3}; !slices.Equal(got, want) {
-		t.Errorf("Delay = %v, want %v", got, want)
-	}
-	if atLeast := 3*d - 10*time.Millisecond; elapsed < atLeast {
-		t.Errorf("Delay took %v, want at least %v", elapsed, atLeast)
-	}
+	want := []int{1, 2, 3}
+	assert.Equalf(t, want, got, "Delay = %v, want %v", got, want)
+	atLeast := 3*d - 10*time.Millisecond
+	assert.GreaterOrEqualf(t, elapsed, atLeast, "Delay took %v, want at least %v", elapsed, atLeast)
 }
 
 func TestRateLimitPacesBeyondTheInitialBurst(t *testing.T) {
@@ -113,13 +102,11 @@ func TestRateLimitPacesBeyondTheInitialBurst(t *testing.T) {
 	got := RateLimit(t.Context(), streams.Range(0, 6), n, per).Collect()
 	elapsed := time.Since(start)
 
-	if want := []int{0, 1, 2, 3, 4, 5}; !slices.Equal(got, want) {
-		t.Errorf("RateLimit = %v, want %v", got, want)
-	}
+	want := []int{0, 1, 2, 3, 4, 5}
+	assert.Equalf(t, want, got, "RateLimit = %v, want %v", got, want)
 	// Two elements ride the initial burst; the other four are paced.
-	if atLeast := 3 * emission; elapsed < atLeast {
-		t.Errorf("RateLimit took %v, want at least %v", elapsed, atLeast)
-	}
+	atLeast := 3 * emission
+	assert.GreaterOrEqualf(t, elapsed, atLeast, "RateLimit took %v, want at least %v", elapsed, atLeast)
 }
 
 func TestRateLimitEmitsTheInitialBurstImmediately(t *testing.T) {
@@ -127,21 +114,17 @@ func TestRateLimitEmitsTheInitialBurstImmediately(t *testing.T) {
 	got := RateLimit(t.Context(), streams.Of(1, 2, 3), 3, 3*time.Second).Collect()
 	elapsed := time.Since(start)
 
-	if want := []int{1, 2, 3}; !slices.Equal(got, want) {
-		t.Errorf("RateLimit = %v, want %v", got, want)
-	}
-	if elapsed > time.Second {
-		t.Errorf("RateLimit held the initial burst for %v", elapsed)
-	}
+	want := []int{1, 2, 3}
+	assert.Equalf(t, want, got, "RateLimit = %v, want %v", got, want)
+	assert.LessOrEqualf(t, elapsed, time.Second, "RateLimit held the initial burst for %v", elapsed)
 }
 
 func TestDebounceCoalescesABurst(t *testing.T) {
 	// The source is exhausted long before the quiet period elapses, so the
 	// burst collapses to its last element.
 	got := Debounce(t.Context(), streams.Of(1, 2, 3), time.Second).Collect()
-	if want := []int{3}; !slices.Equal(got, want) {
-		t.Errorf("Debounce = %v, want %v", got, want)
-	}
+	want := []int{3}
+	assert.Equalf(t, want, got, "Debounce = %v, want %v", got, want)
 }
 
 func TestDebounceEmitsAfterTheQuietPeriod(t *testing.T) {
@@ -164,9 +147,8 @@ func TestDebounceEmitsAfterTheQuietPeriod(t *testing.T) {
 		}
 	}
 	// 3 comes from the quiet period, 4 from the end of the source.
-	if want := []int{3, 4}; !slices.Equal(got, want) {
-		t.Errorf("Debounce = %v, want %v", got, want)
-	}
+	want := []int{3, 4}
+	assert.Equalf(t, want, got, "Debounce = %v, want %v", got, want)
 }
 
 func TestSampleTakesTheMostRecentElement(t *testing.T) {
@@ -190,15 +172,11 @@ func TestSampleTakesTheMostRecentElement(t *testing.T) {
 		}
 	}
 
-	if len(got) < 2 || len(got) > 3 {
-		t.Fatalf("Sample = %v, want two or three elements", got)
-	}
-	if got[0] != 3 {
-		t.Errorf("Sample first = %d, want 3, the most recent of the burst", got[0])
-	}
-	if last := got[len(got)-1]; last != 5 {
-		t.Errorf("Sample last = %d, want 5, the element left when the source ended", last)
-	}
+	require.GreaterOrEqualf(t, len(got), 2, "Sample = %v, want two or three elements", got)
+	require.LessOrEqualf(t, len(got), 3, "Sample = %v, want two or three elements", got)
+	assert.Equalf(t, 3, got[0], "Sample first = %d, want 3, the most recent of the burst", got[0])
+	last := got[len(got)-1]
+	assert.Equalf(t, 5, last, "Sample last = %d, want 5, the element left when the source ended", last)
 	increasing(t, "Sample", got)
 }
 
@@ -207,16 +185,12 @@ func TestSampleDropsElementsBetweenIntervals(t *testing.T) {
 
 	got := Sample(t.Context(), paced(5*time.Millisecond), interval).Take(3).Collect()
 
-	if len(got) != 3 {
-		t.Fatalf("Sample = %v, want three samples", got)
-	}
+	require.Lenf(t, got, 3, "Sample = %v, want three samples", got)
 	increasing(t, "Sample", got)
 	// The source counts up from zero, so the last sample's value is the number
 	// of elements produced before it. Sampling three of at least six means the
 	// rest were dropped.
-	if got[2] < 5 {
-		t.Errorf("Sample = %v, want the third sample to skip past the earlier elements", got)
-	}
+	assert.GreaterOrEqualf(t, got[2], 5, "Sample = %v, want the third sample to skip past the earlier elements", got)
 }
 
 func TestTumblingGroupsByWindow(t *testing.T) {
@@ -239,18 +213,14 @@ func TestTumblingGroupsByWindow(t *testing.T) {
 	}
 
 	want := [][]int{{1, 2}, {3}}
-	if !slices.EqualFunc(got, want, slices.Equal) {
-		t.Errorf("Tumbling = %v, want %v", got, want)
-	}
+	assert.Equalf(t, want, got, "Tumbling = %v, want %v", got, want)
 }
 
 func TestTumblingFlushesTheOpenWindow(t *testing.T) {
 	// The source is exhausted well inside the first window.
 	got := Tumbling(t.Context(), streams.Of(1, 2, 3), time.Second).Collect()
 	want := [][]int{{1, 2, 3}}
-	if !slices.EqualFunc(got, want, slices.Equal) {
-		t.Errorf("Tumbling = %v, want %v", got, want)
-	}
+	assert.Equalf(t, want, got, "Tumbling = %v, want %v", got, want)
 }
 
 func TestSlidingOverlapsAndExpires(t *testing.T) {
@@ -269,25 +239,19 @@ func TestSlidingOverlapsAndExpires(t *testing.T) {
 
 	got := Sliding(t.Context(), streams.Chan(ch), size, every).Collect()
 
-	if len(got) < 2 {
-		t.Fatalf("Sliding = %v, want at least two windows", got)
-	}
+	require.GreaterOrEqualf(t, len(got), 2, "Sliding = %v, want at least two windows", got)
 	held := 0
 	for _, w := range got {
-		if len(w) == 0 {
-			t.Errorf("Sliding = %v, want no empty window", got)
+		if !assert.NotEmptyf(t, w, "Sliding = %v, want no empty window", got) {
 			break
 		}
 		if slices.Contains(w, 1) {
 			held++
 		}
 	}
-	if held < 2 {
-		t.Errorf("Sliding held 1 in %d windows, want it to overlap at least two", held)
-	}
-	if last, want := got[len(got)-1], []int{2}; !slices.Equal(last, want) {
-		t.Errorf("Sliding last = %v, want %v, with 1 expired", last, want)
-	}
+	assert.GreaterOrEqualf(t, held, 2, "Sliding held 1 in %d windows, want it to overlap at least two", held)
+	last, want := got[len(got)-1], []int{2}
+	assert.Equalf(t, want, last, "Sliding last = %v, want %v, with 1 expired", last, want)
 }
 
 func TestSessionGroupsByGap(t *testing.T) {
@@ -311,30 +275,22 @@ func TestSessionGroupsByGap(t *testing.T) {
 	}
 
 	want := [][]int{{1, 2}, {3, 4}}
-	if !slices.EqualFunc(got, want, slices.Equal) {
-		t.Errorf("Session = %v, want %v", got, want)
-	}
-	if order := flatten(got); !slices.Equal(order, []int{1, 2, 3, 4}) {
-		t.Errorf("Session order = %v, want arrival order", order)
-	}
+	assert.Equalf(t, want, got, "Session = %v, want %v", got, want)
+	order := flatten(got)
+	assert.Equalf(t, []int{1, 2, 3, 4}, order, "Session order = %v, want arrival order", order)
 }
 
 func TestSessionFlushesTheOpenSession(t *testing.T) {
 	got := Session(t.Context(), streams.Of(1, 2), time.Second).Collect()
 	want := [][]int{{1, 2}}
-	if !slices.EqualFunc(got, want, slices.Equal) {
-		t.Errorf("Session = %v, want %v", got, want)
-	}
+	assert.Equalf(t, want, got, "Session = %v, want %v", got, want)
 }
 
 func TestTimeoutPassesAStreamThatFinishesInTime(t *testing.T) {
 	got, err := streams.Try(Timeout(t.Context(), streams.Of(1, 2, 3), 5*time.Second))
-	if err != nil {
-		t.Errorf("Timeout err = %v, want nil", err)
-	}
-	if want := []int{1, 2, 3}; !slices.Equal(got, want) {
-		t.Errorf("Timeout = %v, want %v", got, want)
-	}
+	assert.NoErrorf(t, err, "Timeout err = %v, want nil", err)
+	want := []int{1, 2, 3}
+	assert.Equalf(t, want, got, "Timeout = %v, want %v", got, want)
 }
 
 func TestTimeoutBoundsTheWholeIteration(t *testing.T) {
@@ -346,12 +302,9 @@ func TestTimeoutBoundsTheWholeIteration(t *testing.T) {
 	_, err := streams.Try(Timeout(t.Context(), paced(20*time.Millisecond), d))
 	elapsed := time.Since(start)
 
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Errorf("Timeout err = %v, want %v", err, context.DeadlineExceeded)
-	}
-	if atLeast := d - 10*time.Millisecond; elapsed < atLeast {
-		t.Errorf("Timeout fired after %v, want at least %v", elapsed, atLeast)
-	}
+	assert.ErrorIsf(t, err, context.DeadlineExceeded, "Timeout err = %v, want %v", err, context.DeadlineExceeded)
+	atLeast := d - 10*time.Millisecond
+	assert.GreaterOrEqualf(t, elapsed, atLeast, "Timeout fired after %v, want at least %v", elapsed, atLeast)
 }
 
 func TestTimeoutReportsCancellation(t *testing.T) {
@@ -362,9 +315,7 @@ func TestTimeoutReportsCancellation(t *testing.T) {
 	}()
 
 	_, err := streams.Try(Timeout(ctx, paced(20*time.Millisecond), time.Hour))
-	if !errors.Is(err, context.Canceled) {
-		t.Errorf("Timeout err = %v, want %v", err, context.Canceled)
-	}
+	assert.ErrorIsf(t, err, context.Canceled, "Timeout err = %v, want %v", err, context.Canceled)
 }
 
 func TestIntervalTicks(t *testing.T) {
@@ -374,22 +325,17 @@ func TestIntervalTicks(t *testing.T) {
 	got := Interval(t.Context(), d).Take(3).Collect()
 	elapsed := time.Since(start)
 
-	if len(got) != 3 {
-		t.Fatalf("Interval = %v, want three ticks", got)
-	}
+	require.Lenf(t, got, 3, "Interval = %v, want three ticks", got)
 	// The first tick is one period in, not immediate.
-	if got[0].Before(start.Add(d)) {
-		t.Errorf("Interval first tick came %v after the start, want at least %v", got[0].Sub(start), d)
-	}
+	assert.Falsef(t, got[0].Before(start.Add(d)),
+		"Interval first tick came %v after the start, want at least %v", got[0].Sub(start), d)
 	for i := 1; i < len(got); i++ {
-		if !got[i].After(got[i-1]) {
-			t.Errorf("Interval ticks = %v, want increasing times", got)
+		if !assert.Truef(t, got[i].After(got[i-1]), "Interval ticks = %v, want increasing times", got) {
 			break
 		}
 	}
-	if atLeast := 3*d - 10*time.Millisecond; elapsed < atLeast {
-		t.Errorf("Interval took %v for three ticks, want at least %v", elapsed, atLeast)
-	}
+	atLeast := 3*d - 10*time.Millisecond
+	assert.GreaterOrEqualf(t, elapsed, atLeast, "Interval took %v for three ticks, want at least %v", elapsed, atLeast)
 }
 
 func TestStampPairsEachElementWithItsTime(t *testing.T) {
@@ -403,18 +349,13 @@ func TestStampPairsEachElementWithItsTime(t *testing.T) {
 	}
 	end := time.Now()
 
-	if want := []string{"a", "b", "c"}; !slices.Equal(values, want) {
-		t.Errorf("Stamp values = %v, want %v", values, want)
-	}
-	if len(times) != 3 {
-		t.Fatalf("Stamp produced %d pairs, want 3", len(times))
-	}
-	if times[0].Before(start) || times[2].After(end) {
-		t.Errorf("Stamp times %v fall outside the iteration", times)
-	}
+	want := []string{"a", "b", "c"}
+	assert.Equalf(t, want, values, "Stamp values = %v, want %v", values, want)
+	require.Lenf(t, times, 3, "Stamp produced %d pairs, want 3", len(times))
+	assert.Falsef(t, times[0].Before(start) || times[2].After(end),
+		"Stamp times %v fall outside the iteration", times)
 	for i := 1; i < len(times); i++ {
-		if times[i].Before(times[i-1]) {
-			t.Errorf("Stamp times = %v, want non-decreasing", times)
+		if !assert.Falsef(t, times[i].Before(times[i-1]), "Stamp times = %v, want non-decreasing", times) {
 			break
 		}
 	}
@@ -424,37 +365,20 @@ func TestEmptySourceYieldsNothing(t *testing.T) {
 	ctx := t.Context()
 	empty := streams.Empty[int]
 
-	if got := Throttle(ctx, empty(), time.Second).Count(); got != 0 {
-		t.Errorf("Throttle over an empty Stream yielded %d elements", got)
-	}
-	if got := Debounce(ctx, empty(), time.Second).Count(); got != 0 {
-		t.Errorf("Debounce over an empty Stream yielded %d elements", got)
-	}
-	if got := Sample(ctx, empty(), time.Second).Count(); got != 0 {
-		t.Errorf("Sample over an empty Stream yielded %d elements", got)
-	}
-	if got := Delay(ctx, empty(), time.Second).Count(); got != 0 {
-		t.Errorf("Delay over an empty Stream yielded %d elements", got)
-	}
-	if got := RateLimit(ctx, empty(), 1, time.Second).Count(); got != 0 {
-		t.Errorf("RateLimit over an empty Stream yielded %d elements", got)
-	}
-	if got := Tumbling(ctx, empty(), time.Second).Count(); got != 0 {
-		t.Errorf("Tumbling over an empty Stream yielded %d windows", got)
-	}
-	if got := Sliding(ctx, empty(), time.Second, time.Second).Count(); got != 0 {
-		t.Errorf("Sliding over an empty Stream yielded %d windows", got)
-	}
-	if got := Session(ctx, empty(), time.Second).Count(); got != 0 {
-		t.Errorf("Session over an empty Stream yielded %d sessions", got)
-	}
-	if got := Stamp(empty()).Count(); got != 0 {
-		t.Errorf("Stamp over an empty Stream yielded %d pairs", got)
-	}
+	assert.Zero(t, Throttle(ctx, empty(), time.Second).Count(), "Throttle over an empty Stream yielded elements")
+	assert.Zero(t, Debounce(ctx, empty(), time.Second).Count(), "Debounce over an empty Stream yielded elements")
+	assert.Zero(t, Sample(ctx, empty(), time.Second).Count(), "Sample over an empty Stream yielded elements")
+	assert.Zero(t, Delay(ctx, empty(), time.Second).Count(), "Delay over an empty Stream yielded elements")
+	assert.Zero(t, RateLimit(ctx, empty(), 1, time.Second).Count(), "RateLimit over an empty Stream yielded elements")
+	assert.Zero(t, Tumbling(ctx, empty(), time.Second).Count(), "Tumbling over an empty Stream yielded windows")
+	assert.Zero(t, Sliding(ctx, empty(), time.Second, time.Second).Count(), "Sliding over an empty Stream yielded windows")
+	assert.Zero(t, Session(ctx, empty(), time.Second).Count(), "Session over an empty Stream yielded sessions")
+	assert.Zero(t, Stamp(empty()).Count(), "Stamp over an empty Stream yielded pairs")
 	got, err := streams.Try(Timeout(ctx, empty(), time.Second))
-	if len(got) != 0 || err != nil {
-		t.Errorf("Timeout over an empty Stream = %v, %v, want nothing", got, err)
-	}
+	// Try over an empty Stream returns a nil slice, so this asks for emptiness
+	// rather than equality with a particular empty slice.
+	assert.Emptyf(t, got, "Timeout over an empty Stream = %v, %v, want nothing", got, err)
+	assert.NoErrorf(t, err, "Timeout over an empty Stream = %v, %v, want nothing", got, err)
 }
 
 func TestNonPositiveArgumentsPanic(t *testing.T) {
@@ -480,12 +404,7 @@ func TestNonPositiveArgumentsPanic(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			defer func() {
-				if recover() == nil {
-					t.Errorf("%s did not panic", tc.name)
-				}
-			}()
-			tc.call()
+			assert.Panicsf(t, tc.call, "%s did not panic", tc.name)
 		})
 	}
 }
@@ -592,7 +511,7 @@ func end(t *testing.T, name string, drain func()) {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Fatalf("%s did not end", name)
+		require.Failf(t, "operator did not end", "%s did not end", name)
 	}
 }
 
@@ -640,7 +559,7 @@ func TestOperatorsLeaveNoGoroutineBehind(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Errorf("goroutines leaked: before=%d after=%d", before, countGoroutines())
+	assert.Failf(t, "goroutines leaked", "before=%d after=%d", before, countGoroutines())
 }
 
 // quiet yields one element and then blocks forever. It is the state a live feed
@@ -706,7 +625,7 @@ func TestCancellationEndsEveryOperatorWithAQuietSource(t *testing.T) {
 			select {
 			case <-done:
 			case <-time.After(2 * time.Second):
-				t.Fatal("operator did not return within 2s of the context being cancelled")
+				require.Fail(t, "operator did not return within 2s of the context being cancelled")
 			}
 		})
 	}
@@ -736,7 +655,8 @@ func TestOperatorsReleaseTheirTimersWithAQuietSource(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Errorf("goroutines = %d, want at most %d (30 documented parked readers plus slack)",
+	assert.Failf(t, "timers or operator goroutines leaked",
+		"goroutines = %d, want at most %d (30 documented parked readers plus slack)",
 		countGoroutines(), limit)
 }
 
@@ -773,7 +693,7 @@ func TestReaderGoroutineIsReclaimedWithAContextAwareSource(t *testing.T) {
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		t.Errorf("goroutines stranded with a context-aware source: before=%d after=%d",
+		assert.Failf(t, "goroutines stranded with a context-aware source", "before=%d after=%d",
 			before, countGoroutines())
 	})
 
@@ -789,12 +709,12 @@ func TestReaderGoroutineIsReclaimedWithAContextAwareSource(t *testing.T) {
 			chans = append(chans, ch)
 		}
 		time.Sleep(200 * time.Millisecond)
-		if got := countGoroutines(); got < before+runs {
-			t.Errorf("expected %d readers parked in the quiet source, saw %d extra;"+
+		got := countGoroutines()
+		assert.GreaterOrEqualf(t, got, before+runs,
+			"expected %d readers parked in the quiet source, saw %d extra;"+
 				" if this now passes, Chan has become interruptible and the"+
 				" documentation in doc.go and ChanContext must be revisited",
-				runs, got-before)
-		}
+			runs, got-before)
 		// Closing the channel is the other documented way out; take it so the
 		// test leaves nothing behind.
 		for _, ch := range chans {
@@ -807,7 +727,7 @@ func TestReaderGoroutineIsReclaimedWithAContextAwareSource(t *testing.T) {
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		t.Errorf("closing the channel did not release the readers: before=%d after=%d",
+		assert.Failf(t, "closing the channel did not release the readers", "before=%d after=%d",
 			before, countGoroutines())
 	})
 }

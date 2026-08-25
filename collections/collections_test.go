@@ -2,12 +2,13 @@ package collections
 
 import (
 	"cmp"
-	"slices"
 	"strings"
 	"testing"
 
 	coll "github.com/coldsmirk/go-collections"
 	streams "github.com/coldsmirk/go-streams/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -15,32 +16,25 @@ var (
 	byString = coll.CompareFunc[string]()
 )
 
-func eq[T comparable](t *testing.T, name string, got, want []T) {
-	t.Helper()
-	if !slices.Equal(got, want) {
-		t.Errorf("%s = %v, want %v", name, got, want)
-	}
-}
-
 func TestFromCollectionsKeepTheirIterationOrder(t *testing.T) {
 	// The hash types iterate in unspecified order, so compare after sorting.
-	eq(t, "FromSet", streams.Sort(FromSet(coll.NewHashSetFrom(3, 1, 2))).Collect(), []int{1, 2, 3})
-	eq(t, "FromSortedSet", FromSortedSet(coll.NewTreeSetFrom(byInt, 3, 1, 2)).Collect(), []int{1, 2, 3})
+	assert.Equal(t, []int{1, 2, 3}, streams.Sort(FromSet(coll.NewHashSetFrom(3, 1, 2))).Collect(), "FromSet")
+	assert.Equal(t, []int{1, 2, 3}, FromSortedSet(coll.NewTreeSetFrom(byInt, 3, 1, 2)).Collect(), "FromSortedSet")
 
-	eq(t, "FromList array", FromList(coll.NewArrayListFrom(3, 1, 2)).Collect(), []int{3, 1, 2})
-	eq(t, "FromList linked", FromList(coll.NewLinkedListFrom(3, 1, 2)).Collect(), []int{3, 1, 2})
+	assert.Equal(t, []int{3, 1, 2}, FromList(coll.NewArrayListFrom(3, 1, 2)).Collect(), "FromList array")
+	assert.Equal(t, []int{3, 1, 2}, FromList(coll.NewLinkedListFrom(3, 1, 2)).Collect(), "FromList linked")
 
-	eq(t, "FromQueue", FromQueue(coll.NewArrayQueueFrom(1, 2, 3)).Collect(), []int{1, 2, 3})
-	eq(t, "FromStack", FromStack(coll.NewArrayStackFrom(1, 2, 3)).Collect(), []int{3, 2, 1})
-	eq(t, "FromDeque", FromDeque(coll.NewArrayDequeFrom(1, 2, 3)).Collect(), []int{1, 2, 3})
+	assert.Equal(t, []int{1, 2, 3}, FromQueue(coll.NewArrayQueueFrom(1, 2, 3)).Collect(), "FromQueue")
+	assert.Equal(t, []int{3, 2, 1}, FromStack(coll.NewArrayStackFrom(1, 2, 3)).Collect(), "FromStack")
+	assert.Equal(t, []int{1, 2, 3}, FromDeque(coll.NewArrayDequeFrom(1, 2, 3)).Collect(), "FromDeque")
 
 	m := coll.NewHashMapFrom(map[string]int{"a": 1, "b": 2})
-	eq(t, "FromMap keys", streams.Sort(FromMap(m).Keys()).Collect(), []string{"a", "b"})
-	eq(t, "FromMap values", streams.Sort(FromMap(m).Values()).Collect(), []int{1, 2})
+	assert.Equal(t, []string{"a", "b"}, streams.Sort(FromMap(m).Keys()).Collect(), "FromMap keys")
+	assert.Equal(t, []int{1, 2}, streams.Sort(FromMap(m).Values()).Collect(), "FromMap values")
 
 	sm := coll.NewTreeMapFrom(byString, map[string]int{"c": 3, "a": 1, "b": 2})
-	eq(t, "FromSortedMap keys", FromSortedMap(sm).Keys().Collect(), []string{"a", "b", "c"})
-	eq(t, "FromSortedMap values", FromSortedMap(sm).Values().Collect(), []int{1, 2, 3})
+	assert.Equal(t, []string{"a", "b", "c"}, FromSortedMap(sm).Keys().Collect(), "FromSortedMap keys")
+	assert.Equal(t, []int{1, 2, 3}, FromSortedMap(sm).Values().Collect(), "FromSortedMap values")
 }
 
 func TestFromPriorityQueueYieldsHeapOrder(t *testing.T) {
@@ -49,122 +43,103 @@ func TestFromPriorityQueueYieldsHeapOrder(t *testing.T) {
 	// Only the head is ordered; the rest is the internal heap layout.
 	head, ok := FromPriorityQueue(q).First()
 	want, _ := q.Peek()
-	if !ok || head != want {
-		t.Errorf("FromPriorityQueue head = %d, %v, want %d", head, ok, want)
-	}
-	eq(t, "FromPriorityQueue sorted", streams.Sort(FromPriorityQueue(q)).Collect(), []int{1, 2, 3})
+	assert.Truef(t, ok && head == want, "FromPriorityQueue head = %d, %v, want %d", head, ok, want)
+	assert.Equal(t, []int{1, 2, 3}, streams.Sort(FromPriorityQueue(q)).Collect(), "FromPriorityQueue sorted")
 
 	// Iterating must not consume the queue.
-	if q.Size() != 3 {
-		t.Errorf("FromPriorityQueue drained the queue: size = %d, want 3", q.Size())
-	}
+	assert.Equalf(t, 3, q.Size(), "FromPriorityQueue drained the queue: size = %d, want 3", q.Size())
 }
 
 func TestFromEmptyCollections(t *testing.T) {
-	eq(t, "FromSet", FromSet(coll.NewHashSet[int]()).Collect(), nil)
-	eq(t, "FromSortedSet", FromSortedSet(coll.NewTreeSet(byInt)).Collect(), nil)
-	eq(t, "FromList array", FromList(coll.NewArrayList[int]()).Collect(), nil)
-	eq(t, "FromList linked", FromList(coll.NewLinkedList[int]()).Collect(), nil)
-	eq(t, "FromQueue", FromQueue(coll.NewArrayQueue[int]()).Collect(), nil)
-	eq(t, "FromStack", FromStack(coll.NewArrayStack[int]()).Collect(), nil)
-	eq(t, "FromDeque", FromDeque(coll.NewArrayDeque[int]()).Collect(), nil)
-	eq(t, "FromPriorityQueue", FromPriorityQueue(coll.NewPriorityQueue(byInt)).Collect(), nil)
+	assert.Empty(t, FromSet(coll.NewHashSet[int]()).Collect(), "FromSet")
+	assert.Empty(t, FromSortedSet(coll.NewTreeSet(byInt)).Collect(), "FromSortedSet")
+	assert.Empty(t, FromList(coll.NewArrayList[int]()).Collect(), "FromList array")
+	assert.Empty(t, FromList(coll.NewLinkedList[int]()).Collect(), "FromList linked")
+	assert.Empty(t, FromQueue(coll.NewArrayQueue[int]()).Collect(), "FromQueue")
+	assert.Empty(t, FromStack(coll.NewArrayStack[int]()).Collect(), "FromStack")
+	assert.Empty(t, FromDeque(coll.NewArrayDeque[int]()).Collect(), "FromDeque")
+	assert.Empty(t, FromPriorityQueue(coll.NewPriorityQueue(byInt)).Collect(), "FromPriorityQueue")
 
-	if got := FromMap(coll.NewHashMap[string, int]()).Count(); got != 0 {
-		t.Errorf("FromMap on an empty map yielded %d pairs", got)
-	}
-	if got := FromSortedMap(coll.NewTreeMap[string, int](byString)).Count(); got != 0 {
-		t.Errorf("FromSortedMap on an empty map yielded %d pairs", got)
-	}
+	gotMap := FromMap(coll.NewHashMap[string, int]()).Count()
+	assert.Zerof(t, gotMap, "FromMap on an empty map yielded %d pairs", gotMap)
+	gotSortedMap := FromSortedMap(coll.NewTreeMap[string, int](byString)).Count()
+	assert.Zerof(t, gotSortedMap, "FromSortedMap on an empty map yielded %d pairs", gotSortedMap)
 }
 
 func TestToCollections(t *testing.T) {
 	set := ToHashSet(streams.Of(1, 2, 2, 3))
-	if set.Size() != 3 || !set.ContainsAll(1, 2, 3) {
-		t.Errorf("ToHashSet = %v, want the three distinct elements", set)
-	}
-	eq(t, "ToTreeSet", ToTreeSet(streams.Of(3, 1, 2, 1), byInt).ToSlice(), []int{1, 2, 3})
+	assert.Truef(t, set.Size() == 3 && set.ContainsAll(1, 2, 3),
+		"ToHashSet = %v, want the three distinct elements", set)
+	assert.Equal(t, []int{1, 2, 3}, ToTreeSet(streams.Of(3, 1, 2, 1), byInt).ToSlice(), "ToTreeSet")
 
-	eq(t, "ToArrayList", ToArrayList(streams.Of(3, 1, 2)).ToSlice(), []int{3, 1, 2})
-	eq(t, "ToLinkedList", ToLinkedList(streams.Of(3, 1, 2)).ToSlice(), []int{3, 1, 2})
-	eq(t, "ToArrayList keeps duplicates", ToArrayList(streams.Of(1, 1)).ToSlice(), []int{1, 1})
+	assert.Equal(t, []int{3, 1, 2}, ToArrayList(streams.Of(3, 1, 2)).ToSlice(), "ToArrayList")
+	assert.Equal(t, []int{3, 1, 2}, ToLinkedList(streams.Of(3, 1, 2)).ToSlice(), "ToLinkedList")
+	assert.Equal(t, []int{1, 1}, ToArrayList(streams.Of(1, 1)).ToSlice(), "ToArrayList keeps duplicates")
 
 	// A later pair overwrites an earlier one with the same key.
 	m := ToHashMap(streams.Of("a", "b", "a").Zip(streams.Of(1, 2, 3)))
-	if m.Size() != 2 {
-		t.Errorf("ToHashMap size = %d, want 2", m.Size())
-	}
-	if v, _ := m.Get("a"); v != 3 {
-		t.Errorf("ToHashMap a = %d, want the later pair 3", v)
-	}
+	assert.Equalf(t, 2, m.Size(), "ToHashMap size = %d, want 2", m.Size())
+	v, _ := m.Get("a")
+	assert.Equalf(t, 3, v, "ToHashMap a = %d, want the later pair 3", v)
 
 	sm := ToTreeMap(streams.Of("b", "a", "b").Zip(streams.Of(1, 2, 3)), byString)
-	eq(t, "ToTreeMap keys", sm.Keys(), []string{"a", "b"})
-	if v, _ := sm.Get("b"); v != 3 {
-		t.Errorf("ToTreeMap b = %d, want the later pair 3", v)
-	}
+	assert.Equal(t, []string{"a", "b"}, sm.Keys(), "ToTreeMap keys")
+	v, _ = sm.Get("b")
+	assert.Equalf(t, 3, v, "ToTreeMap b = %d, want the later pair 3", v)
 }
 
 func TestToEmptyCollections(t *testing.T) {
-	if got := ToHashSet(streams.Empty[int]()); !got.IsEmpty() {
-		t.Errorf("ToHashSet of an empty Stream = %v", got)
-	}
-	if got := ToTreeSet(streams.Empty[int](), byInt); !got.IsEmpty() {
-		t.Errorf("ToTreeSet of an empty Stream = %v", got)
-	}
-	if got := ToArrayList(streams.Empty[int]()); !got.IsEmpty() {
-		t.Errorf("ToArrayList of an empty Stream = %v", got)
-	}
-	if got := ToLinkedList(streams.Empty[int]()); !got.IsEmpty() {
-		t.Errorf("ToLinkedList of an empty Stream = %v", got)
-	}
-	if got := ToHashMap(streams.Empty2[string, int]()); !got.IsEmpty() {
-		t.Errorf("ToHashMap of an empty Stream2 = %v", got)
-	}
-	if got := ToTreeMap(streams.Empty2[string, int](), byString); !got.IsEmpty() {
-		t.Errorf("ToTreeMap of an empty Stream2 = %v", got)
-	}
+	hashSet := ToHashSet(streams.Empty[int]())
+	assert.Truef(t, hashSet.IsEmpty(), "ToHashSet of an empty Stream = %v", hashSet)
+	treeSet := ToTreeSet(streams.Empty[int](), byInt)
+	assert.Truef(t, treeSet.IsEmpty(), "ToTreeSet of an empty Stream = %v", treeSet)
+	arrayList := ToArrayList(streams.Empty[int]())
+	assert.Truef(t, arrayList.IsEmpty(), "ToArrayList of an empty Stream = %v", arrayList)
+	linkedList := ToLinkedList(streams.Empty[int]())
+	assert.Truef(t, linkedList.IsEmpty(), "ToLinkedList of an empty Stream = %v", linkedList)
+	hashMap := ToHashMap(streams.Empty2[string, int]())
+	assert.Truef(t, hashMap.IsEmpty(), "ToHashMap of an empty Stream2 = %v", hashMap)
+	treeMap := ToTreeMap(streams.Empty2[string, int](), byString)
+	assert.Truef(t, treeMap.IsEmpty(), "ToTreeMap of an empty Stream2 = %v", treeMap)
 }
 
 func TestRoundTripThroughAStream(t *testing.T) {
 	list := coll.NewArrayListFrom(3, 1, 2)
-	eq(t, "list", ToArrayList(FromList(list)).ToSlice(), list.ToSlice())
-	eq(t, "list to linked", ToLinkedList(FromList(list)).ToSlice(), list.ToSlice())
+	assert.Equal(t, list.ToSlice(), ToArrayList(FromList(list)).ToSlice(), "list")
+	assert.Equal(t, list.ToSlice(), ToLinkedList(FromList(list)).ToSlice(), "list to linked")
 
 	set := coll.NewHashSetFrom(1, 2, 3)
-	if back := ToHashSet(FromSet(set)); !back.Equals(set) {
-		t.Errorf("hash set round trip = %v, want %v", back, set)
-	}
-	eq(t, "tree set", ToTreeSet(FromSortedSet(coll.NewTreeSetFrom(byInt, 3, 1, 2)), byInt).ToSlice(),
-		[]int{1, 2, 3})
+	backSet := ToHashSet(FromSet(set))
+	assert.Truef(t, backSet.Equals(set), "hash set round trip = %v, want %v", backSet, set)
+	assert.Equal(t, []int{1, 2, 3},
+		ToTreeSet(FromSortedSet(coll.NewTreeSetFrom(byInt, 3, 1, 2)), byInt).ToSlice(), "tree set")
 
 	m := coll.NewHashMapFrom(map[string]int{"a": 1, "b": 2})
-	if back := ToHashMap(FromMap(m)); !back.Equals(m, coll.EqualFunc[int]()) {
-		t.Errorf("hash map round trip = %v, want %v", back, m)
-	}
+	backMap := ToHashMap(FromMap(m))
+	assert.Truef(t, backMap.Equals(m, coll.EqualFunc[int]()), "hash map round trip = %v, want %v", backMap, m)
 	back := ToTreeMap(FromSortedMap(coll.NewTreeMapFrom(byString, map[string]int{"b": 2, "a": 1})), byString)
-	eq(t, "tree map keys", back.Keys(), []string{"a", "b"})
-	eq(t, "tree map values", back.Values(), []int{1, 2})
+	assert.Equal(t, []string{"a", "b"}, back.Keys(), "tree map keys")
+	assert.Equal(t, []int{1, 2}, back.Values(), "tree map values")
 
 	// The queue-like types have no To counterpart; their order survives in a list.
-	eq(t, "queue", ToArrayList(FromQueue(coll.NewArrayQueueFrom(1, 2, 3))).ToSlice(), []int{1, 2, 3})
-	eq(t, "stack", ToArrayList(FromStack(coll.NewArrayStackFrom(1, 2, 3))).ToSlice(), []int{3, 2, 1})
-	eq(t, "deque", ToArrayList(FromDeque(coll.NewArrayDequeFrom(1, 2, 3))).ToSlice(), []int{1, 2, 3})
-	eq(t, "priority queue",
+	assert.Equal(t, []int{1, 2, 3}, ToArrayList(FromQueue(coll.NewArrayQueueFrom(1, 2, 3))).ToSlice(), "queue")
+	assert.Equal(t, []int{3, 2, 1}, ToArrayList(FromStack(coll.NewArrayStackFrom(1, 2, 3))).ToSlice(), "stack")
+	assert.Equal(t, []int{1, 2, 3}, ToArrayList(FromDeque(coll.NewArrayDequeFrom(1, 2, 3))).ToSlice(), "deque")
+	assert.Equal(t, []int{1, 2, 3},
 		ToTreeSet(FromPriorityQueue(coll.NewPriorityQueueFrom(byInt, 3, 1, 2)), byInt).ToSlice(),
-		[]int{1, 2, 3})
+		"priority queue")
 }
 
 func TestSortedTypesUseTheirComparator(t *testing.T) {
 	desc := coll.Comparator[int](func(a, b int) int { return cmp.Compare(b, a) })
 
-	eq(t, "FromSortedSet", FromSortedSet(coll.NewTreeSetFrom(desc, 1, 3, 2)).Collect(), []int{3, 2, 1})
-	eq(t, "FromSortedMap",
+	assert.Equal(t, []int{3, 2, 1}, FromSortedSet(coll.NewTreeSetFrom(desc, 1, 3, 2)).Collect(), "FromSortedSet")
+	assert.Equal(t, []int{3, 2, 1},
 		FromSortedMap(coll.NewTreeMapFrom(desc, map[int]string{1: "a", 2: "b", 3: "c"})).Keys().Collect(),
-		[]int{3, 2, 1})
-	eq(t, "ToTreeSet", ToTreeSet(streams.Of(1, 3, 2), desc).ToSlice(), []int{3, 2, 1})
-	eq(t, "ToTreeMap", ToTreeMap(streams.Of(1, 3, 2).Zip(streams.Of("a", "b", "c")), desc).Keys(),
-		[]int{3, 2, 1})
+		"FromSortedMap")
+	assert.Equal(t, []int{3, 2, 1}, ToTreeSet(streams.Of(1, 3, 2), desc).ToSlice(), "ToTreeSet")
+	assert.Equal(t, []int{3, 2, 1}, ToTreeMap(streams.Of(1, 3, 2).Zip(streams.Of("a", "b", "c")), desc).Keys(),
+		"ToTreeMap")
 }
 
 func TestFromReadsTheCollectionLazily(t *testing.T) {
@@ -175,16 +150,14 @@ func TestFromReadsTheCollectionLazily(t *testing.T) {
 		Peek(func(int) { consumed++ }).
 		Take(2).
 		ForEach(func(int) {})
-	if consumed != 2 {
-		t.Errorf("consumed %d elements for a Take(2), want 2", consumed)
-	}
+	assert.Equalf(t, 2, consumed, "consumed %d elements for a Take(2), want 2", consumed)
 
 	// The Stream iterates the collection itself, so an element added before the
 	// Stream is consumed is still seen.
 	l := coll.NewLinkedListFrom(1, 2)
 	s := FromList(l)
 	l.Add(3)
-	eq(t, "live view", s.Collect(), []int{1, 2, 3})
+	assert.Equal(t, []int{1, 2, 3}, s.Collect(), "live view")
 }
 
 // The liveness contract has to hold for every implementation behind the
@@ -203,7 +176,7 @@ func TestFromListIsLiveForEveryImplementation(t *testing.T) {
 			l := make()
 			s := FromList(l)
 			l.Add(3)
-			eq(t, "live view", s.Collect(), []int{1, 2, 3})
+			assert.Equal(t, []int{1, 2, 3}, s.Collect(), "live view")
 		})
 	}
 }
@@ -212,7 +185,7 @@ func TestFromQueueIsLive(t *testing.T) {
 	q := coll.NewArrayQueueFrom(1, 2)
 	s := FromQueue(q)
 	q.Enqueue(3)
-	eq(t, "live view", s.Collect(), []int{1, 2, 3})
+	assert.Equal(t, []int{1, 2, 3}, s.Collect(), "live view")
 }
 
 type keyed struct {
@@ -239,9 +212,9 @@ func TestToTreeSetKeepsTheFirstOfEachEqualGroup(t *testing.T) {
 		keyed{"a", 1}, keyed{"a", 2}, keyed{"b", 3}, keyed{"b", 4},
 	), byKey)
 	got := set.ToSlice()
-	if len(got) != 2 || got[0].N != 1 || got[1].N != 3 {
-		t.Errorf("ToTreeSet = %v, want the first of each group: [{a 1} {b 3}]", got)
-	}
+	require.Lenf(t, got, 2, "ToTreeSet = %v, want the first of each group: [{a 1} {b 3}]", got)
+	assert.Equal(t, 1, got[0].N, "ToTreeSet keeps the first of the a group")
+	assert.Equal(t, 3, got[1].N, "ToTreeSet keeps the first of the b group")
 }
 
 // ToTreeMap keeps the last, by the same convention as assigning to a Go map.
@@ -249,7 +222,6 @@ func TestToTreeSetKeepsTheFirstOfEachEqualGroup(t *testing.T) {
 func TestToTreeMapKeepsTheLastOfEachEqualKey(t *testing.T) {
 	m := ToTreeMap(streams.Of("a", "a").Zip(streams.Of(1, 2)),
 		strings.Compare)
-	if v, _ := m.Get("a"); v != 2 {
-		t.Errorf("ToTreeMap kept %d, want the last value 2", v)
-	}
+	v, _ := m.Get("a")
+	assert.Equalf(t, 2, v, "ToTreeMap kept %d, want the last value 2", v)
 }

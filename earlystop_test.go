@@ -3,6 +3,8 @@ package streams
 import (
 	"iter"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // The iter contract says yield panics if it is called after returning false.
@@ -12,36 +14,32 @@ import (
 
 func breakAfterOne[T any](t *testing.T, name string, s Stream[T]) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("%s: yielding after the consumer stopped: %v", name, r)
-		}
-	}()
 	n := 0
-	for range iter.Seq[T](s) {
-		n++
-		break
+	// A panic ends the check here, as the original recover-based harness did:
+	// the count below describes a run that completed.
+	if !assert.NotPanicsf(t, func() {
+		for range iter.Seq[T](s) {
+			n++
+			break
+		}
+	}, "%s: yielding after the consumer stopped", name) {
+		return
 	}
-	if n != 1 {
-		t.Errorf("%s: consumed %d elements before the break, want 1", name, n)
-	}
+	assert.Equalf(t, 1, n, "%s: elements consumed before the break", name)
 }
 
 func breakAfterOne2[K, V any](t *testing.T, name string, s Stream2[K, V]) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("%s: yielding after the consumer stopped: %v", name, r)
-		}
-	}()
 	n := 0
-	for range iter.Seq2[K, V](s) {
-		n++
-		break
+	if !assert.NotPanicsf(t, func() {
+		for range iter.Seq2[K, V](s) {
+			n++
+			break
+		}
+	}, "%s: yielding after the consumer stopped", name) {
+		return
 	}
-	if n != 1 {
-		t.Errorf("%s: consumed %d pairs before the break, want 1", name, n)
-	}
+	assert.Equalf(t, 1, n, "%s: pairs consumed before the break", name)
 }
 
 func TestIntermediateOpsHonourEarlyStop(t *testing.T) {
@@ -117,17 +115,14 @@ func TestStream2OpsHonourEarlyStop(t *testing.T) {
 }
 
 func TestTryMapHonoursEarlyStop(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("TryMap yielded after the consumer stopped: %v", r)
-		}
-	}()
 	n := 0
-	for range TryMap(Of(1, 2, 3), func(i int) (int, error) { return i, nil }) {
-		n++
-		break
+	if !assert.NotPanics(t, func() {
+		for range TryMap(Of(1, 2, 3), func(i int) (int, error) { return i, nil }) {
+			n++
+			break
+		}
+	}, "TryMap yielded after the consumer stopped") {
+		return
 	}
-	if n != 1 {
-		t.Errorf("TryMap consumed %d, want 1", n)
-	}
+	assert.Equal(t, 1, n, "elements TryMap consumed before the break")
 }

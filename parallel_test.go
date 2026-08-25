@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParallelMapPreservesOrder(t *testing.T) {
@@ -17,9 +19,7 @@ func TestParallelMapPreservesOrder(t *testing.T) {
 	}, WithConcurrency(8)).Collect()
 
 	want := Range(0, 20).Map(func(i int) int { return i * 2 }).Collect()
-	if !slices.Equal(got, want) {
-		t.Errorf("ParallelMap = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got, "ParallelMap")
 }
 
 func TestParallelMapUnorderedKeepsEveryElement(t *testing.T) {
@@ -27,9 +27,7 @@ func TestParallelMapUnorderedKeepsEveryElement(t *testing.T) {
 		WithConcurrency(8), Unordered()).Collect()
 	slices.Sort(got)
 	want := Range(0, 50).Map(func(i int) int { return i * 2 }).Collect()
-	if !slices.Equal(got, want) {
-		t.Errorf("unordered lost or duplicated elements: got %d, want %d", len(got), len(want))
-	}
+	assert.Equal(t, want, got, "unordered lost or duplicated elements")
 }
 
 // The bound must hold exactly, for every entry point and both orderings. The
@@ -70,9 +68,7 @@ func TestParallelRespectsConcurrencyLimitExactly(t *testing.T) {
 					case "ForEach":
 						Range(0, 60).ParallelForEach(func(i int) { work(i) }, opts...)
 					}
-					if got := peak.Load(); got != int64(limit) {
-						t.Errorf("peak concurrency = %d, want exactly %d", got, limit)
-					}
+					assert.Equal(t, int64(limit), peak.Load(), "peak concurrency")
 				})
 			}
 		}
@@ -87,12 +83,9 @@ func TestParallelMapStopsEarlyWithoutLeaking(t *testing.T) {
 		return i
 	}, WithConcurrency(4)).Take(5).Collect()
 
-	if !slices.Equal(got, []int{0, 1, 2, 3, 4}) {
-		t.Errorf("Take after ParallelMap = %v", got)
-	}
-	if n := started.Load(); n > 200 {
-		t.Errorf("early exit still processed %d elements", n)
-	}
+	assert.Equal(t, []int{0, 1, 2, 3, 4}, got, "Take after ParallelMap")
+	assert.LessOrEqual(t, started.Load(), int64(200), "elements processed after the early exit")
+
 	// give the abandoned workers a moment to unwind
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
@@ -101,23 +94,22 @@ func TestParallelMapStopsEarlyWithoutLeaking(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	t.Errorf("goroutines leaked: before=%d after=%d", before, countGoroutines())
+	// Fail outright rather than re-testing the count: the loop above has already
+	// established it, and a fresh reading could flip it to a pass.
+	assert.Failf(t, "goroutines leaked", "before=%d after=%d", before, countGoroutines())
 }
 
 func TestParallelFilter(t *testing.T) {
+	want := Range(0, 30).Filter(func(i int) bool { return i%3 == 0 }).Collect()
+
 	got := Range(0, 30).ParallelFilter(func(i int) bool { return i%3 == 0 },
 		WithConcurrency(4)).Collect()
-	want := Range(0, 30).Filter(func(i int) bool { return i%3 == 0 }).Collect()
-	if !slices.Equal(got, want) {
-		t.Errorf("ParallelFilter = %v, want %v", got, want)
-	}
+	assert.Equal(t, want, got, "ParallelFilter")
 
 	unordered := Range(0, 30).ParallelFilter(func(i int) bool { return i%3 == 0 },
 		WithConcurrency(4), Unordered()).Collect()
 	slices.Sort(unordered)
-	if !slices.Equal(unordered, want) {
-		t.Errorf("unordered ParallelFilter = %v, want %v", unordered, want)
-	}
+	assert.Equal(t, want, unordered, "unordered ParallelFilter")
 }
 
 func TestParallelForEach(t *testing.T) {
@@ -128,22 +120,16 @@ func TestParallelForEach(t *testing.T) {
 		defer mu.Unlock()
 		seen[i] = true
 	}, WithConcurrency(8))
-	if len(seen) != 100 {
-		t.Errorf("ParallelForEach visited %d elements, want 100", len(seen))
-	}
+	assert.Len(t, seen, 100, "elements ParallelForEach visited")
 }
 
 func TestParallelDefaultsAndDegenerateConcurrency(t *testing.T) {
 	// concurrency below one is clamped rather than deadlocking
-	got := Of(1, 2, 3).ParallelMap(func(i int) int { return i }, WithConcurrency(0)).Collect()
-	if !slices.Equal(got, []int{1, 2, 3}) {
-		t.Errorf("WithConcurrency(0) = %v", got)
-	}
+	assert.Equal(t, []int{1, 2, 3},
+		Of(1, 2, 3).ParallelMap(func(i int) int { return i }, WithConcurrency(0)).Collect(),
+		"WithConcurrency(0)")
 	// no options at all
-	if got := Of(1, 2).ParallelMap(func(i int) int { return i * 3 }).Collect(); !slices.Equal(got, []int{3, 6}) {
-		t.Errorf("default options = %v", got)
-	}
-	if got := Empty[int]().ParallelMap(func(i int) int { return i }).Collect(); len(got) != 0 {
-		t.Errorf("empty = %v", got)
-	}
+	assert.Equal(t, []int{3, 6},
+		Of(1, 2).ParallelMap(func(i int) int { return i * 3 }).Collect(), "default options")
+	assert.Empty(t, Empty[int]().ParallelMap(func(i int) int { return i }).Collect(), "empty")
 }

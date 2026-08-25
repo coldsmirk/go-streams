@@ -4,6 +4,9 @@ import (
 	"math/rand/v2"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Merge maintains a hand-written k-way heap. Compare it against a full sort of
@@ -28,10 +31,7 @@ func TestMergeAgainstSort(t *testing.T) {
 		}
 		slices.Sort(all)
 
-		got := Merge(cmpInt, inputs...).Collect()
-		if !slices.Equal(got, all) {
-			t.Fatalf("trial %d: Merge = %v, want %v", trial, got, all)
-		}
+		require.Equalf(t, all, Merge(cmpInt, inputs...).Collect(), "trial %d: Merge", trial)
 	}
 }
 
@@ -44,10 +44,7 @@ func TestMergeStopsEarlyOnEveryShape(t *testing.T) {
 		{Empty[int](), Of(1, 2)},
 		{Of(1, 2), Empty[int]()},
 	} {
-		got := Merge(cmpInt, inputs...).Take(1).Collect()
-		if len(got) != 1 {
-			t.Errorf("Take(1) after Merge = %v", got)
-		}
+		assert.Len(t, Merge(cmpInt, inputs...).Take(1).Collect(), 1, "Take(1) after Merge")
 	}
 }
 
@@ -57,10 +54,8 @@ func TestMergeStreamsInfiniteInputs(t *testing.T) {
 	cmpInt := func(a, b int) int { return a - b }
 	evens := Iterate(0, func(i int) int { return i + 2 })
 	odds := Iterate(1, func(i int) int { return i + 2 })
-	got := Merge(cmpInt, evens, odds).Take(6).Collect()
-	if !slices.Equal(got, []int{0, 1, 2, 3, 4, 5}) {
-		t.Errorf("Merge of infinite inputs = %v", got)
-	}
+	assert.Equal(t, []int{0, 1, 2, 3, 4, 5}, Merge(cmpInt, evens, odds).Take(6).Collect(),
+		"Merge of infinite inputs")
 }
 
 func TestWindowSharesOverlappingElements(t *testing.T) {
@@ -68,26 +63,21 @@ func TestWindowSharesOverlappingElements(t *testing.T) {
 	// common are one element, not two copies. This is the documented contract;
 	// it is what makes a sliding window cost no allocation per element.
 	windows := Window(Of(1, 2, 3, 4, 5), 3).Collect()
-	if len(windows) != 3 {
-		t.Fatalf("got %d windows, want 3", len(windows))
-	}
-	eq(t, "windows", windows[0], []int{1, 2, 3})
-	eq(t, "windows", windows[1], []int{2, 3, 4})
-	eq(t, "windows", windows[2], []int{3, 4, 5})
+	require.Len(t, windows, 3, "windows")
+	assert.Equal(t, []int{1, 2, 3}, windows[0], "windows[0]")
+	assert.Equal(t, []int{2, 3, 4}, windows[1], "windows[1]")
+	assert.Equal(t, []int{3, 4, 5}, windows[2], "windows[2]")
 
 	// Element 3 sits at index 2 of the first window, 1 of the second and 0 of
 	// the third. Writing through one is visible in the others.
 	windows[0][2] = 99
-	if windows[1][1] != 99 || windows[2][0] != 99 {
-		t.Errorf("overlapping elements are not shared: %v", windows)
-	}
+	assert.Equalf(t, 99, windows[1][1], "overlapping elements are not shared: %v", windows)
+	assert.Equalf(t, 99, windows[2][0], "overlapping elements are not shared: %v", windows)
 
 	// Where independence is wanted, the caller asks for it.
 	windows = Window(Of(1, 2, 3, 4, 5), 3).Map(slices.Clone).Collect()
 	windows[0][2] = 99
-	if windows[1][1] != 3 {
-		t.Errorf("Map(slices.Clone) must give independent windows: %v", windows)
-	}
+	assert.Equalf(t, 3, windows[1][1], "Map(slices.Clone) must give independent windows: %v", windows)
 }
 
 // A window must stay correct after the arena it was cut from has been retired,
@@ -96,16 +86,12 @@ func TestWindowSharesOverlappingElements(t *testing.T) {
 func TestWindowSurvivesArenaRefills(t *testing.T) {
 	const n, count = 3, 500
 	windows := Window(Range(0, count), n).Collect()
-	if len(windows) != count-n+1 {
-		t.Fatalf("got %d windows, want %d", len(windows), count-n+1)
-	}
+	require.Len(t, windows, count-n+1, "windows")
 	// Every window, including the earliest, still holds what it held when it
 	// was yielded -- no refill overwrote it.
 	for i, w := range windows {
 		for j := range n {
-			if w[j] != i+j {
-				t.Fatalf("window %d = %v, want [%d..%d]", i, w, i, i+n-1)
-			}
+			require.Equalf(t, i+j, w[j], "window %d = %v, want [%d..%d]", i, w, i, i+n-1)
 		}
 	}
 }
@@ -113,19 +99,14 @@ func TestWindowSurvivesArenaRefills(t *testing.T) {
 func TestChunkDoesNotAliasItsBuffer(t *testing.T) {
 	chunks := Chunk(Of(1, 2, 3, 4), 2).Collect()
 	chunks[0][0] = 99
-	if chunks[1][0] != 3 {
-		t.Errorf("chunks share a buffer: %v", chunks)
-	}
+	assert.Equalf(t, 3, chunks[1][0], "chunks share a buffer: %v", chunks)
 }
 
 func TestCycleStoppedDuringFirstPass(t *testing.T) {
-	if got := Cycle(Of(1, 2, 3)).Take(2).Collect(); !slices.Equal(got, []int{1, 2}) {
-		t.Errorf("Cycle stopped in the first pass = %v", got)
-	}
-	if got := Cycle(Of(1, 2, 3)).Take(3).Collect(); !slices.Equal(got, []int{1, 2, 3}) {
-		t.Errorf("Cycle stopped at the pass boundary = %v", got)
-	}
-	if got := Cycle(Of(1, 2, 3)).Take(4).Collect(); !slices.Equal(got, []int{1, 2, 3, 1}) {
-		t.Errorf("Cycle across the boundary = %v", got)
-	}
+	assert.Equal(t, []int{1, 2}, Cycle(Of(1, 2, 3)).Take(2).Collect(),
+		"Cycle stopped in the first pass")
+	assert.Equal(t, []int{1, 2, 3}, Cycle(Of(1, 2, 3)).Take(3).Collect(),
+		"Cycle stopped at the pass boundary")
+	assert.Equal(t, []int{1, 2, 3, 1}, Cycle(Of(1, 2, 3)).Take(4).Collect(),
+		"Cycle across the boundary")
 }

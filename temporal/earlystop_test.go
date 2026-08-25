@@ -6,6 +6,7 @@ import (
 	"time"
 
 	streams "github.com/coldsmirk/go-streams/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 // The iter contract says yield panics if it is called after returning false.
@@ -19,36 +20,32 @@ import (
 
 func breakAfterOne[T any](t *testing.T, name string, s streams.Stream[T]) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("%s: yielding after the consumer stopped: %v", name, r)
-		}
-	}()
 	n := 0
-	for range iter.Seq[T](s) {
-		n++
-		break
+	ok := assert.NotPanicsf(t, func() {
+		for range iter.Seq[T](s) {
+			n++
+			break
+		}
+	}, "%s: yielding after the consumer stopped", name)
+	if !ok {
+		return
 	}
-	if n != 1 {
-		t.Errorf("%s: consumed %d elements before the break, want 1", name, n)
-	}
+	assert.Equalf(t, 1, n, "%s: consumed %d elements before the break, want 1", name, n)
 }
 
 func breakAfterOne2[K, V any](t *testing.T, name string, seq iter.Seq2[K, V]) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("%s: yielding after the consumer stopped: %v", name, r)
-		}
-	}()
 	n := 0
-	for range seq {
-		n++
-		break
+	ok := assert.NotPanicsf(t, func() {
+		for range seq {
+			n++
+			break
+		}
+	}, "%s: yielding after the consumer stopped", name)
+	if !ok {
+		return
 	}
-	if n != 1 {
-		t.Errorf("%s: consumed %d pairs before the break, want 1", name, n)
-	}
+	assert.Equalf(t, 1, n, "%s: consumed %d pairs before the break, want 1", name, n)
 }
 
 func TestOperatorsHonourEarlyStop(t *testing.T) {

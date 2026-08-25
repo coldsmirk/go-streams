@@ -4,6 +4,8 @@ import (
 	"iter"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	streams "github.com/coldsmirk/go-streams/v2"
 )
 
@@ -16,38 +18,32 @@ import (
 
 func breakAfter[T any](t *testing.T, name string, n int, s streams.Stream[T]) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("%s: yielding after the consumer stopped: %v", name, r)
-		}
-	}()
 	seen := 0
-	for range iter.Seq[T](s) {
-		if seen++; seen == n {
-			break
+	if !assert.NotPanicsf(t, func() {
+		for range iter.Seq[T](s) {
+			if seen++; seen == n {
+				break
+			}
 		}
+	}, "%s: yielding after the consumer stopped", name) {
+		return
 	}
-	if seen != n {
-		t.Errorf("%s: consumed %d elements before the break, want %d", name, seen, n)
-	}
+	assert.Equalf(t, n, seen, "%s: consumed elements before the break", name)
 }
 
 func breakAfter2[K, V any](t *testing.T, name string, n int, s streams.Stream2[K, V]) {
 	t.Helper()
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("%s: yielding after the consumer stopped: %v", name, r)
-		}
-	}()
 	seen := 0
-	for range iter.Seq2[K, V](s) {
-		if seen++; seen == n {
-			break
+	if !assert.NotPanicsf(t, func() {
+		for range iter.Seq2[K, V](s) {
+			if seen++; seen == n {
+				break
+			}
 		}
+	}, "%s: yielding after the consumer stopped", name) {
+		return
 	}
-	if seen != n {
-		t.Errorf("%s: consumed %d pairs before the break, want %d", name, seen, n)
-	}
+	assert.Equalf(t, n, seen, "%s: consumed pairs before the break", name)
 }
 
 func TestJoinsHonourEarlyStop(t *testing.T) {

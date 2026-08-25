@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	streams "github.com/coldsmirk/go-streams/v2"
 )
 
@@ -48,55 +50,48 @@ func showGroup(k string, l []int, r []string) string { return fmt.Sprintf("%s%v%
 
 func showPair(k string, v int) string { return k + strconv.Itoa(v) }
 
-func eq[T comparable](t *testing.T, name string, got, want []T) {
-	t.Helper()
-	if !slices.Equal(got, want) {
-		t.Errorf("%s = %v, want %v", name, got, want)
-	}
-}
-
 func TestInner(t *testing.T) {
 	// a duplicate key on both sides yields the cartesian product for that key,
 	// in the encounter order of a and then of b
-	eq(t, "Inner", Inner(srcA(), srcB(), showInner).Collect(),
-		[]string{"x1A", "x1C", "x3A", "x3C"})
-	eq(t, "Inner without a match", Inner(srcA(), disjoint(), showInner).Collect(), nil)
-	eq(t, "Inner with an empty a", Inner(streams.Empty2[string, int](), srcB(), showInner).Collect(), nil)
-	eq(t, "Inner with an empty b", Inner(srcA(), streams.Empty2[string, string](), showInner).Collect(), nil)
+	assert.Equal(t, []string{"x1A", "x1C", "x3A", "x3C"},
+		Inner(srcA(), srcB(), showInner).Collect(), "Inner")
+	assert.Empty(t, Inner(srcA(), disjoint(), showInner).Collect(), "Inner without a match")
+	assert.Empty(t, Inner(streams.Empty2[string, int](), srcB(), showInner).Collect(), "Inner with an empty a")
+	assert.Empty(t, Inner(srcA(), streams.Empty2[string, string](), showInner).Collect(), "Inner with an empty b")
 }
 
 func TestLeft(t *testing.T) {
-	eq(t, "Left", Left(srcA(), srcB(), showLeft).Collect(),
-		[]string{"x1A", "x1C", "y2-", "x3A", "x3C"})
-	eq(t, "Left without a match", Left(srcA(), disjoint(), showLeft).Collect(),
-		[]string{"x1-", "y2-", "x3-"})
-	eq(t, "Left with an empty b", Left(srcA(), streams.Empty2[string, string](), showLeft).Collect(),
-		[]string{"x1-", "y2-", "x3-"})
-	eq(t, "Left with an empty a", Left(streams.Empty2[string, int](), srcB(), showLeft).Collect(), nil)
+	assert.Equal(t, []string{"x1A", "x1C", "y2-", "x3A", "x3C"},
+		Left(srcA(), srcB(), showLeft).Collect(), "Left")
+	assert.Equal(t, []string{"x1-", "y2-", "x3-"},
+		Left(srcA(), disjoint(), showLeft).Collect(), "Left without a match")
+	assert.Equal(t, []string{"x1-", "y2-", "x3-"},
+		Left(srcA(), streams.Empty2[string, string](), showLeft).Collect(), "Left with an empty b")
+	assert.Empty(t, Left(streams.Empty2[string, int](), srcB(), showLeft).Collect(), "Left with an empty a")
 }
 
 func TestRight(t *testing.T) {
 	// the matched rows follow a, the unmatched rows of b follow at the end
-	eq(t, "Right", Right(srcA(), srcB(), showRight).Collect(),
-		[]string{"x1A", "x1C", "x3A", "x3C", "z-B"})
-	eq(t, "Right without a match", Right(srcA(), disjoint(), showRight).Collect(),
-		[]string{"p-P", "q-Q"})
-	eq(t, "Right with an empty a", Right(streams.Empty2[string, int](), srcB(), showRight).Collect(),
-		[]string{"x-A", "z-B", "x-C"})
-	eq(t, "Right with an empty b", Right(srcA(), streams.Empty2[string, string](), showRight).Collect(), nil)
+	assert.Equal(t, []string{"x1A", "x1C", "x3A", "x3C", "z-B"},
+		Right(srcA(), srcB(), showRight).Collect(), "Right")
+	assert.Equal(t, []string{"p-P", "q-Q"},
+		Right(srcA(), disjoint(), showRight).Collect(), "Right without a match")
+	assert.Equal(t, []string{"x-A", "z-B", "x-C"},
+		Right(streams.Empty2[string, int](), srcB(), showRight).Collect(), "Right with an empty a")
+	assert.Empty(t, Right(srcA(), streams.Empty2[string, string](), showRight).Collect(), "Right with an empty b")
 }
 
 func TestFull(t *testing.T) {
-	eq(t, "Full", Full(srcA(), srcB(), show).Collect(),
-		[]string{"x1A", "x1C", "y2-", "x3A", "x3C", "z-B"})
-	eq(t, "Full without a match", Full(srcA(), disjoint(), show).Collect(),
-		[]string{"x1-", "y2-", "x3-", "p-P", "q-Q"})
-	eq(t, "Full with an empty a", Full(streams.Empty2[string, int](), srcB(), show).Collect(),
-		[]string{"x-A", "z-B", "x-C"})
-	eq(t, "Full with an empty b", Full(srcA(), streams.Empty2[string, string](), show).Collect(),
-		[]string{"x1-", "y2-", "x3-"})
-	eq(t, "Full with two empty sides",
-		Full(streams.Empty2[string, int](), streams.Empty2[string, string](), show).Collect(), nil)
+	assert.Equal(t, []string{"x1A", "x1C", "y2-", "x3A", "x3C", "z-B"},
+		Full(srcA(), srcB(), show).Collect(), "Full")
+	assert.Equal(t, []string{"x1-", "y2-", "x3-", "p-P", "q-Q"},
+		Full(srcA(), disjoint(), show).Collect(), "Full without a match")
+	assert.Equal(t, []string{"x-A", "z-B", "x-C"},
+		Full(streams.Empty2[string, int](), srcB(), show).Collect(), "Full with an empty a")
+	assert.Equal(t, []string{"x1-", "y2-", "x3-"},
+		Full(srcA(), streams.Empty2[string, string](), show).Collect(), "Full with an empty b")
+	assert.Empty(t, Full(streams.Empty2[string, int](), streams.Empty2[string, string](), show).Collect(),
+		"Full with two empty sides")
 }
 
 func TestOuterJoinsReplayBInEncounterOrder(t *testing.T) {
@@ -105,58 +100,54 @@ func TestOuterJoinsReplayBInEncounterOrder(t *testing.T) {
 	b := func() streams.Stream2[string, string] {
 		return streams.Of("p", "q", "p").Zip(streams.Of("P1", "Q", "P2"))
 	}
-	eq(t, "Right", Right(streams.Empty2[string, int](), b(), showRight).Collect(),
-		[]string{"p-P1", "q-Q", "p-P2"})
-	eq(t, "Full", Full(streams.Empty2[string, int](), b(), show).Collect(),
-		[]string{"p-P1", "q-Q", "p-P2"})
+	assert.Equal(t, []string{"p-P1", "q-Q", "p-P2"},
+		Right(streams.Empty2[string, int](), b(), showRight).Collect(), "Right")
+	assert.Equal(t, []string{"p-P1", "q-Q", "p-P2"},
+		Full(streams.Empty2[string, int](), b(), show).Collect(), "Full")
 }
 
 func TestGroup(t *testing.T) {
 	// keys in the order a first saw them, then the keys only b carries
-	eq(t, "Group", Group(srcA(), srcB(), showGroup).Collect(),
-		[]string{"x[1 3][A C]", "y[2][]", "z[][B]"})
-	eq(t, "Group without a match", Group(srcA(), disjoint(), showGroup).Collect(),
-		[]string{"x[1 3][]", "y[2][]", "p[][P]", "q[][Q]"})
-	eq(t, "Group with an empty a", Group(streams.Empty2[string, int](), srcB(), showGroup).Collect(),
-		[]string{"x[][A C]", "z[][B]"})
-	eq(t, "Group with an empty b", Group(srcA(), streams.Empty2[string, string](), showGroup).Collect(),
-		[]string{"x[1 3][]", "y[2][]"})
-	eq(t, "Group with two empty sides",
-		Group(streams.Empty2[string, int](), streams.Empty2[string, string](), showGroup).Collect(), nil)
+	assert.Equal(t, []string{"x[1 3][A C]", "y[2][]", "z[][B]"},
+		Group(srcA(), srcB(), showGroup).Collect(), "Group")
+	assert.Equal(t, []string{"x[1 3][]", "y[2][]", "p[][P]", "q[][Q]"},
+		Group(srcA(), disjoint(), showGroup).Collect(), "Group without a match")
+	assert.Equal(t, []string{"x[][A C]", "z[][B]"},
+		Group(streams.Empty2[string, int](), srcB(), showGroup).Collect(), "Group with an empty a")
+	assert.Equal(t, []string{"x[1 3][]", "y[2][]"},
+		Group(srcA(), streams.Empty2[string, string](), showGroup).Collect(), "Group with an empty b")
+	assert.Empty(t, Group(streams.Empty2[string, int](), streams.Empty2[string, string](), showGroup).Collect(),
+		"Group with two empty sides")
 }
 
 func TestGroupPassesNilForAKeyOnlyOneSideCarries(t *testing.T) {
 	sides := Group(srcA(), srcB(), func(k string, l []int, r []string) string {
 		switch k {
 		case "y":
-			if r != nil {
-				t.Errorf("Group(%q) right = %v, want nil", k, r)
-			}
+			assert.Nilf(t, r, "Group(%q) right", k)
 		case "z":
-			if l != nil {
-				t.Errorf("Group(%q) left = %v, want nil", k, l)
-			}
+			assert.Nilf(t, l, "Group(%q) left", k)
 		}
 		return k
 	})
-	eq(t, "Group keys", sides.Collect(), []string{"x", "y", "z"})
+	assert.Equal(t, []string{"x", "y", "z"}, sides.Collect(), "Group keys")
 }
 
 func TestSemiAndAnti(t *testing.T) {
 	// a row of a is admitted once however many rows of b carry its key
-	eq(t, "Semi", Semi(srcA(), srcB()).Collapse(showPair).Collect(), []string{"x1", "x3"})
-	eq(t, "Anti", Anti(srcA(), srcB()).Collapse(showPair).Collect(), []string{"y2"})
+	assert.Equal(t, []string{"x1", "x3"}, Semi(srcA(), srcB()).Collapse(showPair).Collect(), "Semi")
+	assert.Equal(t, []string{"y2"}, Anti(srcA(), srcB()).Collapse(showPair).Collect(), "Anti")
 
-	eq(t, "Semi without a match", Semi(srcA(), disjoint()).Collapse(showPair).Collect(), nil)
-	eq(t, "Anti without a match", Anti(srcA(), disjoint()).Collapse(showPair).Collect(),
-		[]string{"x1", "y2", "x3"})
+	assert.Empty(t, Semi(srcA(), disjoint()).Collapse(showPair).Collect(), "Semi without a match")
+	assert.Equal(t, []string{"x1", "y2", "x3"},
+		Anti(srcA(), disjoint()).Collapse(showPair).Collect(), "Anti without a match")
 
 	empty := streams.Empty2[string, string]
-	eq(t, "Semi with an empty b", Semi(srcA(), empty()).Collapse(showPair).Collect(), nil)
-	eq(t, "Anti with an empty b", Anti(srcA(), empty()).Collapse(showPair).Collect(),
-		[]string{"x1", "y2", "x3"})
-	eq(t, "Semi with an empty a", Semi(streams.Empty2[string, int](), srcB()).Collapse(showPair).Collect(), nil)
-	eq(t, "Anti with an empty a", Anti(streams.Empty2[string, int](), srcB()).Collapse(showPair).Collect(), nil)
+	assert.Empty(t, Semi(srcA(), empty()).Collapse(showPair).Collect(), "Semi with an empty b")
+	assert.Equal(t, []string{"x1", "y2", "x3"},
+		Anti(srcA(), empty()).Collapse(showPair).Collect(), "Anti with an empty b")
+	assert.Empty(t, Semi(streams.Empty2[string, int](), srcB()).Collapse(showPair).Collect(), "Semi with an empty a")
+	assert.Empty(t, Anti(streams.Empty2[string, int](), srcB()).Collapse(showPair).Collect(), "Anti with an empty a")
 }
 
 // The derived-key joins: "cherry" has no match, and the key "a" is carried
@@ -175,27 +166,28 @@ func TestUnkeyedStreamsJoinViaKeyBy(t *testing.T) {
 	pair := func(a, b string) string { return a + "-" + b }
 
 	t.Run("Inner", func(t *testing.T) {
-		eq(t, "inner", Inner(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial),
-			func(_ string, a, b string) string { return pair(a, b) }).Collect(),
-			[]string{"apple-ant", "apple-auk", "banana-bee", "avocado-ant", "avocado-auk"})
-		eq(t, "no match", Inner(streams.Of("cherry").KeyBy(initial), onSrcB().KeyBy(initial),
-			func(_ string, a, b string) string { return pair(a, b) }).Collect(), nil)
-		eq(t, "empty b", Inner(onSrcA().KeyBy(initial), streams.Empty[string]().KeyBy(initial),
-			func(_ string, a, b string) string { return pair(a, b) }).Collect(), nil)
-		eq(t, "empty a", Inner(streams.Empty[string]().KeyBy(initial), onSrcB().KeyBy(initial),
-			func(_ string, a, b string) string { return pair(a, b) }).Collect(), nil)
+		assert.Equal(t, []string{"apple-ant", "apple-auk", "banana-bee", "avocado-ant", "avocado-auk"},
+			Inner(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial),
+				func(_ string, a, b string) string { return pair(a, b) }).Collect(), "inner")
+		assert.Empty(t, Inner(streams.Of("cherry").KeyBy(initial), onSrcB().KeyBy(initial),
+			func(_ string, a, b string) string { return pair(a, b) }).Collect(), "no match")
+		assert.Empty(t, Inner(onSrcA().KeyBy(initial), streams.Empty[string]().KeyBy(initial),
+			func(_ string, a, b string) string { return pair(a, b) }).Collect(), "empty b")
+		assert.Empty(t, Inner(streams.Empty[string]().KeyBy(initial), onSrcB().KeyBy(initial),
+			func(_ string, a, b string) string { return pair(a, b) }).Collect(), "empty a")
 	})
 
 	// These four had no derived-key form before KeyBy.
 	t.Run("Left", func(t *testing.T) {
-		eq(t, "left", Left(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial),
-			func(_ string, a, b string, ok bool) string {
-				if !ok {
-					return a + "-none"
-				}
-				return pair(a, b)
-			}).Collect(),
-			[]string{"apple-ant", "apple-auk", "banana-bee", "avocado-ant", "avocado-auk", "cherry-none"})
+		assert.Equal(t,
+			[]string{"apple-ant", "apple-auk", "banana-bee", "avocado-ant", "avocado-auk", "cherry-none"},
+			Left(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial),
+				func(_ string, a, b string, ok bool) string {
+					if !ok {
+						return a + "-none"
+					}
+					return pair(a, b)
+				}).Collect(), "left")
 	})
 
 	t.Run("Right", func(t *testing.T) {
@@ -206,7 +198,7 @@ func TestUnkeyedStreamsJoinViaKeyBy(t *testing.T) {
 				}
 				return pair(a, b)
 			}).Collect()
-		eq(t, "right", got, []string{"none-ant", "none-bee", "none-auk"})
+		assert.Equal(t, []string{"none-ant", "none-bee", "none-auk"}, got, "right")
 	})
 
 	t.Run("Full", func(t *testing.T) {
@@ -214,7 +206,7 @@ func TestUnkeyedStreamsJoinViaKeyBy(t *testing.T) {
 			func(k string, a string, _ bool, b string, _ bool) string {
 				return k + ":" + a + "/" + b
 			}).Collect()
-		eq(t, "full", got, []string{"a:apple/", "b:/bee"})
+		assert.Equal(t, []string{"a:apple/", "b:/bee"}, got, "full")
 	})
 
 	t.Run("Group", func(t *testing.T) {
@@ -223,17 +215,17 @@ func TestUnkeyedStreamsJoinViaKeyBy(t *testing.T) {
 				return k + ":" + strconv.Itoa(len(a)) + "/" + strconv.Itoa(len(b))
 			}).Collect()
 		slices.Sort(got)
-		eq(t, "group", got, []string{"a:2/2", "b:1/1", "c:1/0"})
+		assert.Equal(t, []string{"a:2/2", "b:1/1", "c:1/0"}, got, "group")
 	})
 
 	t.Run("Semi and Anti", func(t *testing.T) {
-		eq(t, "semi", Semi(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial)).Values().Collect(),
-			[]string{"apple", "banana", "avocado"})
-		eq(t, "anti", Anti(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial)).Values().Collect(),
-			[]string{"cherry"})
-		eq(t, "anti with an empty b",
+		assert.Equal(t, []string{"apple", "banana", "avocado"},
+			Semi(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial)).Values().Collect(), "semi")
+		assert.Equal(t, []string{"cherry"},
+			Anti(onSrcA().KeyBy(initial), onSrcB().KeyBy(initial)).Values().Collect(), "anti")
+		assert.Equal(t, []string{"apple", "banana", "avocado", "cherry"},
 			Anti(onSrcA().KeyBy(initial), streams.Empty[string]().KeyBy(initial)).Values().Collect(),
-			[]string{"apple", "banana", "avocado", "cherry"})
+			"anti with an empty b")
 	})
 }
 
@@ -241,29 +233,29 @@ func TestJoinsStreamTheLeftSide(t *testing.T) {
 	infinite := func() streams.Stream2[string, int] {
 		return streams.Repeat("x", -1).Zip(streams.Iterate(1, func(i int) int { return i + 1 }))
 	}
-	eq(t, "Inner", Inner(infinite(), srcB(), showInner).Take(3).Collect(),
-		[]string{"x1A", "x1C", "x2A"})
-	eq(t, "Left", Left(infinite(), srcB(), showLeft).Take(3).Collect(),
-		[]string{"x1A", "x1C", "x2A"})
-	eq(t, "Semi", Semi(infinite(), srcB()).Take(2).Collapse(showPair).Collect(),
-		[]string{"x1", "x2"})
-	eq(t, "Anti", Anti(infinite(), disjoint()).Take(2).Collapse(showPair).Collect(),
-		[]string{"x1", "x2"})
+	assert.Equal(t, []string{"x1A", "x1C", "x2A"},
+		Inner(infinite(), srcB(), showInner).Take(3).Collect(), "Inner")
+	assert.Equal(t, []string{"x1A", "x1C", "x2A"},
+		Left(infinite(), srcB(), showLeft).Take(3).Collect(), "Left")
+	assert.Equal(t, []string{"x1", "x2"},
+		Semi(infinite(), srcB()).Take(2).Collapse(showPair).Collect(), "Semi")
+	assert.Equal(t, []string{"x1", "x2"},
+		Anti(infinite(), disjoint()).Take(2).Collapse(showPair).Collect(), "Anti")
 
 	// KeyBy is lazy, so an infinite unkeyed stream still streams.
 	unkeyed := func() streams.Stream2[string, string] {
 		return streams.Repeat("apple", -1).KeyBy(initial)
 	}
-	eq(t, "Inner over KeyBy",
+	assert.Equal(t, []string{"ant", "auk", "ant"},
 		Inner(unkeyed(), onSrcB().KeyBy(initial),
 			func(_ string, _, b string) string { return b }).Take(3).Collect(),
-		[]string{"ant", "auk", "ant"})
-	eq(t, "Semi over KeyBy",
+		"Inner over KeyBy")
+	assert.Equal(t, []string{"apple", "apple"},
 		Semi(unkeyed(), onSrcB().KeyBy(initial)).Take(2).Values().Collect(),
-		[]string{"apple", "apple"})
-	eq(t, "Anti over KeyBy",
+		"Semi over KeyBy")
+	assert.Equal(t, []string{"apple", "apple"},
 		Anti(unkeyed(), streams.Empty[string]().KeyBy(initial)).Take(2).Values().Collect(),
-		[]string{"apple", "apple"})
+		"Anti over KeyBy")
 }
 
 // The buffered side is drained once, not once per row of the streamed side.
@@ -293,9 +285,7 @@ func TestBIsDrainedOnce(t *testing.T) {
 	} {
 		drained = 0
 		tc.run(b())
-		if drained != 1 {
-			t.Errorf("%s drained b %d times, want 1", tc.name, drained)
-		}
+		assert.Equalf(t, 1, drained, "%s drained b", tc.name)
 	}
 }
 
@@ -304,11 +294,7 @@ func TestJoinsAreLazy(t *testing.T) {
 	touched := 0
 	a := streams.Of("x", "y").Peek(func(string) { touched++ }).Zip(streams.Of(1, 2))
 	s := Inner(a, srcB(), showInner)
-	if touched != 0 {
-		t.Errorf("Inner consumed %d rows of a before iteration", touched)
-	}
+	assert.Equal(t, 0, touched, "Inner consumed rows of a before iteration")
 	s.ForEach(func(string) {})
-	if touched != 2 {
-		t.Errorf("Inner consumed %d rows of a, want 2", touched)
-	}
+	assert.Equal(t, 2, touched, "Inner consumed rows of a")
 }
