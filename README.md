@@ -147,7 +147,8 @@ err := source.WriteCSVFile("out.csv", rows)
 
 `Lines`, `LinesFile`, `StringLines`, `Bytes`, `Runes`, `CSV`, `CSVFile`, `TSV`,
 `TSVFile`, `Delimited`, `Records`, `RecordsFile`, `Keyed`, `File`, `WriteLines`,
-`WriteFile`, `WriteCSV`, `WriteCSVFile`, and the `Record` type.
+`WriteFile`, `WriteCSV`, `WriteCSVFile`, the `Record` type, and the
+`ErrFieldCount` error.
 
 File sources open and close the file themselves — unlike v1, there is nothing for
 the caller to `Close`. An error ends the sequence.

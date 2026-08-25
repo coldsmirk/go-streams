@@ -3,10 +3,17 @@ package source
 import (
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"iter"
 	"slices"
 )
+
+// ErrFieldCount is reported by [Keyed] when a row holds a different number of
+// fields than the header. Rows read by [Delimited] and its derivatives cannot
+// trigger it, because [encoding/csv] already enforces a uniform field count;
+// it applies to rows from any other source.
+var ErrFieldCount = errors.New("source: row field count differs from header")
 
 // Delimited returns a sequence of the records read from r, with fields
 // separated by delim. Parsing follows [encoding/csv]: fields may be quoted,
@@ -74,6 +81,11 @@ type Record map[string]string
 // yields nothing. Where the header repeats a name, the last column with that
 // name wins.
 //
+// Every row must hold as many fields as the header: a row that does not ends
+// the sequence with an error matching [ErrFieldCount]. Rows read by
+// [Delimited] and its derivatives always conform, because [encoding/csv]
+// enforces a uniform field count.
+//
 // The sequence ends at the first error from seq, reported as a final pair of a
 // nil Record and the error. Header-keying is independent of the delimiter, so
 // it composes with any row source:
@@ -98,6 +110,11 @@ func Keyed(seq iter.Seq2[[]string, error]) iter.Seq2[Record, error] {
 				// reusing source is free to overwrite.
 				header = slices.Clone(row)
 				continue
+			}
+			if len(row) != len(header) {
+				yield(nil, fmt.Errorf("%w: row has %d fields, header has %d",
+					ErrFieldCount, len(row), len(header)))
+				return
 			}
 			record := make(Record, len(header))
 			for i, name := range header {

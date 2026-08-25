@@ -277,6 +277,51 @@ func TestKeyedComposesWithAnyDelimiter(t *testing.T) {
 	})
 }
 
+// Keyed accepts any row source, so it must enforce the field-count contract
+// itself; encoding/csv enforces it only for the sources built on Delimited.
+func TestKeyedRejectsRaggedRows(t *testing.T) {
+	rows := func(rows ...[]string) iter.Seq2[[]string, error] {
+		return func(yield func([]string, error) bool) {
+			for _, r := range rows {
+				if !yield(r, nil) {
+					return
+				}
+			}
+		}
+	}
+
+	t.Run("short row", func(t *testing.T) {
+		got, err := collect2(Keyed(rows([]string{"a", "b"}, []string{"1"})))
+		if !errors.Is(err, ErrFieldCount) {
+			t.Fatalf("Keyed error = %v, want one matching ErrFieldCount", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("Keyed yielded %v before the error, want none", got)
+		}
+	})
+
+	t.Run("long row", func(t *testing.T) {
+		got, err := collect2(Keyed(rows([]string{"a", "b"}, []string{"1", "2", "3"})))
+		if !errors.Is(err, ErrFieldCount) {
+			t.Fatalf("Keyed error = %v, want one matching ErrFieldCount", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("Keyed yielded %v before the error, want none", got)
+		}
+	})
+
+	t.Run("conforming rows precede the error", func(t *testing.T) {
+		got, err := collect2(Keyed(rows([]string{"a"}, []string{"1"}, []string{"2", "x"})))
+		if !errors.Is(err, ErrFieldCount) {
+			t.Fatalf("Keyed error = %v, want one matching ErrFieldCount", err)
+		}
+		want := []Record{{"a": "1"}}
+		if !slices.EqualFunc(got, want, maps.Equal[Record, Record]) {
+			t.Errorf("Keyed = %v before the error, want %v", got, want)
+		}
+	})
+}
+
 // File is the general form the *File twins are built on. Exporting it is what
 // lets a caller read a file in a format this package does not name, without
 // re-implementing the open/close/error-ordering contract.
