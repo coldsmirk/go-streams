@@ -13,8 +13,16 @@ jobs:
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    # Only run if: Test workflow succeeded AND triggered by a version tag
+    # Only run for a Test workflow that succeeded on a pushed version tag.
+    #
+    # The push event is load-bearing: workflow_run also fires for Test runs
+    # started by pull_request, where head_branch is the PR's head branch, so a
+    # branch named like a version (v2.3.0) would pass a name check alone and
+    # this job would release it. Test builds pushes only for main and for
+    # v*.*.* tags, and "main" fails the name check, so push plus the name
+    # check leaves exactly the version tags.
     if: >
+      github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.conclusion == 'success' &&
       startsWith(github.event.workflow_run.head_branch, 'v') &&
       contains(github.event.workflow_run.head_branch, '.')
@@ -28,6 +36,21 @@ jobs:
           # previous release tag to this one, and a shallow clone does not
           # reliably contain the older tag, which silently truncates the range.
           fetch-depth: 0
+
+      - name: Verify the release tag
+        env:
+          CURRENT_TAG: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # This job holds contents: write, so it re-derives what the trigger
+          # condition cannot express: the ref must be a strict vMAJOR.MINOR.PATCH
+          # tag, and it must point at the commit Test actually ran on. That way
+          # a future edit to Test's triggers cannot silently widen what gets
+          # released here.
+          echo "$CURRENT_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            || { echo "::error::'$CURRENT_TAG' is not a vMAJOR.MINOR.PATCH tag"; exit 1; }
+          [ "$(git rev-parse "refs/tags/${CURRENT_TAG}^{commit}")" = "$HEAD_SHA" ] \
+            || { echo "::error::tag $CURRENT_TAG does not point at the tested commit $HEAD_SHA"; exit 1; }
 
       - name: Generate Changelog
         id: changelog
