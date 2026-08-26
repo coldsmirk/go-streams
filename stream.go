@@ -272,18 +272,22 @@ func (s Stream[T]) SortStableFunc(compare func(a, b T) int) Stream[T] {
 }
 
 // CompactFunc returns a Stream omitting each element that eq reports equal to
-// the element before it. Like slices.CompactFunc, it removes only adjacent
-// duplicates; use [Distinct] or [Stream.DistinctBy] to remove all of them.
+// the element immediately before it in the input, whether or not that element
+// was itself kept — the semantics of slices.CompactFunc. It removes only
+// adjacent duplicates; use [Distinct] or [Stream.DistinctBy] to remove all of
+// them.
 func (s Stream[T]) CompactFunc(eq func(a, b T) bool) Stream[T] {
 	return func(yield func(T) bool) {
 		var prev T
 		first := true
 		for v := range s {
-			if !first && eq(prev, v) {
-				continue
-			}
+			// prev advances on every element, kept or dropped. Comparing
+			// against the last kept element instead would agree for any eq
+			// that is an equivalence, but diverge from slices.CompactFunc for
+			// one that is not transitive, such as a tolerance.
+			keep := first || !eq(prev, v)
 			prev, first = v, false
-			if !yield(v) {
+			if keep && !yield(v) {
 				return
 			}
 		}

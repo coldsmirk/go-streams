@@ -121,6 +121,18 @@ func TestSortAndCompact(t *testing.T) {
 		Of("aa", "ab", "b").DistinctBy(func(s string) byte { return s[0] }).Collect(), "DistinctBy key")
 }
 
+// CompactFunc compares each element against its input predecessor, kept or not,
+// because that is what slices.CompactFunc does. Only an eq that is not
+// transitive can tell the two readings apart: against the last kept element,
+// 3 below would survive (it is not within 1 of 1) and the Stream would diverge
+// from the slice.
+func TestCompactFuncMatchesSlicesCompactFunc(t *testing.T) {
+	closeBy := func(a, b int) bool { return max(a, b)-min(a, b) <= 1 }
+	in := []int{1, 2, 3, 10, 11, 13}
+	assert.Equal(t, slices.CompactFunc(slices.Clone(in), closeBy),
+		Of(in...).CompactFunc(closeBy).Collect(), "CompactFunc with a non-transitive eq")
+}
+
 func TestZipAndEnumerate(t *testing.T) {
 	// Zip yields a Stream2, so the package needs no Pair type.
 	m := maps.Collect(iter.Seq2[string, int](Of("a", "b", "c").Zip(Of(1, 2, 3))))
