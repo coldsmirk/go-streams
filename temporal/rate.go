@@ -72,7 +72,7 @@ func Debounce[T any](ctx context.Context, s streams.Stream[T], quiet time.Durati
 				return
 			case v, ok := <-elems:
 				if !ok {
-					if waiting {
+					if waiting && !canceled(ctx) {
 						yield(pending)
 					}
 					return
@@ -83,6 +83,9 @@ func Debounce[T any](ctx context.Context, s streams.Stream[T], quiet time.Durati
 				// delivered after Reset.
 				timer.Reset(quiet)
 			case <-timer.C:
+				if canceled(ctx) {
+					return
+				}
 				// The timer runs only while an element is waiting, so a firing
 				// always has one to emit.
 				waiting = false
@@ -124,13 +127,16 @@ func Sample[T any](ctx context.Context, s streams.Stream[T], interval time.Durat
 				return
 			case v, ok := <-elems:
 				if !ok {
-					if unsampled {
+					if unsampled && !canceled(ctx) {
 						yield(latest)
 					}
 					return
 				}
 				latest, unsampled = v, true
 			case <-ticker.C:
+				if canceled(ctx) {
+					return
+				}
 				if !unsampled {
 					continue
 				}

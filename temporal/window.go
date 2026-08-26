@@ -36,13 +36,16 @@ func Tumbling[T any](ctx context.Context, s streams.Stream[T], size time.Duratio
 				return
 			case v, ok := <-elems:
 				if !ok {
-					if len(window) > 0 {
+					if len(window) > 0 && !canceled(ctx) {
 						yield(window)
 					}
 					return
 				}
 				window = append(window, v)
 			case <-ticker.C:
+				if canceled(ctx) {
+					return
+				}
 				if len(window) == 0 {
 					continue
 				}
@@ -89,13 +92,16 @@ func Sliding[T any](ctx context.Context, s streams.Stream[T], size, every time.D
 				return
 			case v, ok := <-elems:
 				if !ok {
-					if _, window := span(held, size); window != nil {
+					if _, window := span(held, size); window != nil && !canceled(ctx) {
 						yield(window)
 					}
 					return
 				}
 				held = append(held, stamped[T]{at: time.Now(), value: v})
 			case <-ticker.C:
+				if canceled(ctx) {
+					return
+				}
 				kept, window := span(held, size)
 				held = kept
 				if window == nil {
@@ -138,7 +144,7 @@ func Session[T any](ctx context.Context, s streams.Stream[T], gap time.Duration)
 				return
 			case v, ok := <-elems:
 				if !ok {
-					if len(session) > 0 {
+					if len(session) > 0 && !canceled(ctx) {
 						yield(session)
 					}
 					return
@@ -149,6 +155,9 @@ func Session[T any](ctx context.Context, s streams.Stream[T], gap time.Duration)
 				// delivered after Reset.
 				timer.Reset(gap)
 			case <-timer.C:
+				if canceled(ctx) {
+					return
+				}
 				// The timer runs only while a session is open, so a firing
 				// always closes one that has elements in it.
 				closed := session

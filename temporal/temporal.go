@@ -48,6 +48,10 @@ func Timeout[T any](ctx context.Context, s streams.Stream[T], d time.Duration) i
 				if !ok {
 					return
 				}
+				if canceled(ctx) {
+					yield(zero, ctx.Err())
+					return
+				}
 				if !yield(v, nil) {
 					return
 				}
@@ -76,6 +80,9 @@ func Interval(ctx context.Context, d time.Duration) streams.Stream[time.Time] {
 			case <-ctx.Done():
 				return
 			case t := <-ticker.C:
+				if canceled(ctx) {
+					return
+				}
 				if !yield(t) {
 					return
 				}
@@ -97,6 +104,17 @@ func Stamp[T any](s streams.Stream[T]) streams.Stream2[time.Time, T] {
 }
 
 // --- internals ---
+
+// canceled reports whether ctx is done. The operators call it before every
+// emission, the end-of-source flushes included, because a done context and a
+// ready element or timer are both live select cases and select breaks the tie
+// at random: without the recheck an operator could emit after cancellation.
+// The recheck is what turns the package promise — done means nothing further
+// is emitted — from a probabilistic outcome into a deterministic one.
+// (Throttle, Delay and RateLimit get the same recheck through wait, which
+// every one of their emissions passes through.)
+func canceled(ctx context.Context) bool { return ctx.Err() != nil }
+
 // recv waits for the next element of elems or for ctx to be done, whichever
 // happens first. It reports false when ctx is done or elems is closed.
 //

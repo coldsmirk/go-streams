@@ -290,6 +290,21 @@ func TestChanContext(t *testing.T) {
 		}
 	})
 
+	t.Run("emits nothing once the context is done", func(t *testing.T) {
+		// A done context and a buffered value are both live select cases, and
+		// the tie between them is broken at random, so a single pass could get
+		// lucky. Many passes make a regression practically certain to surface.
+		for range 100 {
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			ch := make(chan int, 3)
+			ch <- 1
+			ch <- 2
+			ch <- 3
+			assert.Empty(t, ChanContext(ctx, ch).Collect(), "values after cancel")
+		}
+	})
+
 	t.Run("honours early stop", func(t *testing.T) {
 		ch := make(chan int, 3)
 		ch <- 1

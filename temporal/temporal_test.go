@@ -684,6 +684,70 @@ func TestCancellationEndsEveryOperatorWithAQuietSource(t *testing.T) {
 	}
 }
 
+// burst returns a source whose elements are already buffered and whose channel
+// is closed, so an operator's receive case is ready the moment its select runs.
+// Together with a context cancelled before iteration begins, that forces the
+// select tie the operators must break in cancellation's favour.
+func burst() streams.Stream[int] {
+	ch := make(chan int, 3)
+	ch <- 1
+	ch <- 2
+	ch <- 3
+	close(ch)
+	return streams.Chan(ch)
+}
+
+// Once the context is done nothing further is emitted — the promise doc.go
+// makes for every operator, end-of-source flushes included. It needs its own
+// test because a done context and a ready element are both live select cases,
+// where the winner is random: each operator is driven many times so a
+// regression cannot hide behind a lucky draw. Timeout, the documented
+// exception, has the test after this one.
+func TestOperatorsEmitNothingOnceCancelled(t *testing.T) {
+	const unit = 10 * time.Millisecond
+	count := map[string]func(ctx context.Context) int{
+		"Throttle":  func(ctx context.Context) int { return Throttle(ctx, burst(), unit).Count() },
+		"Debounce":  func(ctx context.Context) int { return Debounce(ctx, burst(), unit).Count() },
+		"Sample":    func(ctx context.Context) int { return Sample(ctx, burst(), unit).Count() },
+		"Delay":     func(ctx context.Context) int { return Delay(ctx, burst(), unit).Count() },
+		"RateLimit": func(ctx context.Context) int { return RateLimit(ctx, burst(), 5, unit).Count() },
+		"Tumbling":  func(ctx context.Context) int { return Tumbling(ctx, burst(), unit).Count() },
+		"Sliding":   func(ctx context.Context) int { return Sliding(ctx, burst(), 2*unit, unit).Count() },
+		"Session":   func(ctx context.Context) int { return Session(ctx, burst(), unit).Count() },
+		"Interval":  func(ctx context.Context) int { return Interval(ctx, unit).Count() },
+	}
+	for name, run := range count {
+		t.Run(name, func(t *testing.T) {
+			for range 50 {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				assert.Zerof(t, run(ctx), "%s emitted after cancellation", name)
+			}
+		})
+	}
+}
+
+// Timeout is the exception doc.go names: cancellation still emits, but only
+// the one final pair carrying ctx.Err(), never an element.
+func TestTimeoutReportsCancellationWithoutEmittingElements(t *testing.T) {
+	for range 50 {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		values := 0
+		var errs []error
+		for _, err := range Timeout(ctx, burst(), time.Second) {
+			if err != nil {
+				errs = append(errs, err)
+			} else {
+				values++
+			}
+		}
+		assert.Zero(t, values, "Timeout emitted elements after cancellation")
+		require.Len(t, errs, 1, "Timeout errors")
+		assert.ErrorIs(t, errs[0], context.Canceled, "Timeout error")
+	}
+}
+
 // Timers must be released even for a source that never yields again. The reader
 // goroutine is a weaker guarantee and is documented as such in doc.go: a source
 // that stays quiet keeps it parked, and Go offers no way to reclaim it. This

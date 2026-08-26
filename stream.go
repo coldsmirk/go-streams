@@ -55,7 +55,11 @@ func ChanContext[T any](ctx context.Context, ch <-chan T) Stream[T] {
 			case <-ctx.Done():
 				return
 			case v, ok := <-ch:
-				if !ok || !yield(v) {
+				// A buffered value and a done context are both live cases, and
+				// select breaks that tie at random. Cancellation must win it,
+				// so ctx is rechecked before the value is emitted; the value
+				// itself is discarded, like anything else cancellation cuts off.
+				if !ok || ctx.Err() != nil || !yield(v) {
 					return
 				}
 			}
