@@ -170,7 +170,8 @@ func Session[T any](ctx context.Context, s streams.Stream[T], gap time.Duration)
 	}
 }
 
-// stamped is an element paired with the time [Sliding] received it.
+// stamped is an element paired with the time it was received, which lets
+// [Sliding] expire it and [Delay] schedule it.
 type stamped[T any] struct {
 	at    time.Time
 	value T

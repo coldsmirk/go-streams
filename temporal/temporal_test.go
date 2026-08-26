@@ -78,8 +78,12 @@ func TestThrottleEmitsTheFirstElementImmediately(t *testing.T) {
 	assert.LessOrEqualf(t, elapsed, 500*time.Millisecond, "Throttle held the first element for %v", elapsed)
 }
 
-func TestDelayShiftsEveryElement(t *testing.T) {
-	const d = 30 * time.Millisecond
+func TestDelayShiftsTheWholeStream(t *testing.T) {
+	// Three elements produced at once are delayed together, not one after
+	// another, so the whole run takes about one d. The upper bound is what
+	// asserts the overlap — a serial wait would take at least 3*d — and it
+	// leaves a full d of slack for a loaded machine.
+	const d = 400 * time.Millisecond
 
 	start := time.Now()
 	got := Delay(t.Context(), streams.Of(1, 2, 3), d).Collect()
@@ -87,8 +91,41 @@ func TestDelayShiftsEveryElement(t *testing.T) {
 
 	want := []int{1, 2, 3}
 	assert.Equal(t, want, got, "Delay")
-	atLeast := 3*d - 10*time.Millisecond
+	atLeast := d - 10*time.Millisecond
 	assert.GreaterOrEqualf(t, elapsed, atLeast, "Delay took %v, want at least %v", elapsed, atLeast)
+	atMost := 2 * d
+	assert.Lessf(t, elapsed, atMost, "Delay took %v, want under %v: the waits must overlap", elapsed, atMost)
+}
+
+func TestDelayPreservesSpacing(t *testing.T) {
+	// The second element arrives gap after the first and must be emitted about
+	// gap after it too. A serial wait would stretch the spacing to d, and
+	// holding both elements to emit together would collapse it to nothing, so
+	// the bounds separate the shift from both failure shapes.
+	const (
+		gap = 250 * time.Millisecond
+		d   = 500 * time.Millisecond
+	)
+	ch := make(chan int, 2)
+	go func() {
+		ch <- 1
+		time.Sleep(gap)
+		ch <- 2
+		close(ch)
+	}()
+
+	start := time.Now()
+	var emitted []time.Duration
+	for range Delay(t.Context(), streams.Chan(ch), d) {
+		emitted = append(emitted, time.Since(start))
+	}
+
+	require.Lenf(t, emitted, 2, "Delay emitted %d elements, want 2", len(emitted))
+	spacing := emitted[1] - emitted[0]
+	assert.GreaterOrEqualf(t, spacing, 100*time.Millisecond,
+		"emissions %v apart, want about the arrival gap of %v", spacing, gap)
+	assert.Lessf(t, spacing, 400*time.Millisecond,
+		"emissions %v apart, want about the arrival gap of %v: the waits must overlap", spacing, gap)
 }
 
 func TestRateLimitPacesBeyondTheInitialBurst(t *testing.T) {

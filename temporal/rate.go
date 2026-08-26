@@ -149,13 +149,16 @@ func Sample[T any](ctx context.Context, s streams.Stream[T], interval time.Durat
 	}
 }
 
-// Delay returns a Stream of the elements of s, each emitted d after it is
-// received. The wait is serial rather than overlapped: because s is pulled one
-// element at a time, the whole Stream is shifted by d and the spacing between
-// consecutive elements is left as it was.
+// Delay returns a Stream of the elements of s, each emitted d after it was
+// received. The waits overlap rather than queue behind one another, so the
+// whole Stream is shifted by d: a burst arrives as a burst, d later, and the
+// spacing between consecutive emissions matches the spacing between their
+// arrivals. The elements inside the shift are buffered, so at any moment Delay
+// holds whatever s produced in the last d.
 //
-// The Stream ends as soon as ctx is done, without emitting the element being
-// delayed. Delay panics if d is not positive.
+// The Stream ends d after s is exhausted, once the last held element has been
+// emitted, and as soon as ctx is done, discarding the elements still held.
+// Delay panics if d is not positive.
 func Delay[T any](ctx context.Context, s streams.Stream[T], d time.Duration) streams.Stream[T] {
 	if d <= 0 {
 		panic("temporal: Delay called with d <= 0")
@@ -163,16 +166,51 @@ func Delay[T any](ctx context.Context, s streams.Stream[T], d time.Duration) str
 	return func(yield func(T) bool) {
 		elems, stop := pump(s)
 		defer stop()
+
+		timer := time.NewTimer(d)
+		defer timer.Stop()
+		timer.Stop() // nothing is due yet
+
+		// held is the queue of elements inside the shift, in arrival order, so
+		// the element due next is always held[0] and the timer only ever needs
+		// to track the head. The timer is armed exactly while held is not
+		// empty: armed when the queue starts, re-armed after each emission.
+		var held []stamped[T]
 		for {
-			v, ok := recv(ctx, elems)
-			if !ok {
+			select {
+			case <-ctx.Done():
 				return
-			}
-			if !wait(ctx, d) {
-				return
-			}
-			if !yield(v) {
-				return
+			case v, ok := <-elems:
+				if !ok {
+					if len(held) == 0 {
+						return
+					}
+					// Disarm this case and drain held on the timer alone: the
+					// end of the Stream is shifted by d like everything else.
+					elems = nil
+					continue
+				}
+				held = append(held, stamped[T]{at: time.Now(), value: v})
+				if len(held) == 1 {
+					timer.Reset(d)
+				}
+			case <-timer.C:
+				if canceled(ctx) {
+					return
+				}
+				v := held[0].value
+				held[0] = stamped[T]{} // the queue walks forward; release the slot for GC
+				held = held[1:]
+				if !yield(v) {
+					return
+				}
+				if len(held) > 0 {
+					// A head already overdue — the consumer was slow — gives a
+					// non-positive reset, which fires the timer at once.
+					timer.Reset(time.Until(held[0].at.Add(d)))
+				} else if elems == nil {
+					return
+				}
 			}
 		}
 	}
