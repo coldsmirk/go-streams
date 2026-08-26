@@ -896,6 +896,52 @@ func TestTimeoutReportsCancellationAfterTheLastElement(t *testing.T) {
 	}
 }
 
+// A deadline that expires while the consumer is busy must win the tie with the
+// next ready element: the doc promises the deadline is noticed between
+// elements, and noticing must not depend on the draw. The sleep lets the
+// deadline fire and the next element park in the handoff, so both are ready.
+func TestTimeoutNoticesTheDeadlineBeforeTheNextElement(t *testing.T) {
+	const d = 10 * time.Millisecond
+	for range 25 {
+		var got []int
+		var errs []error
+		for v, err := range Timeout(t.Context(), burst(), d) {
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			got = append(got, v)
+			time.Sleep(25 * time.Millisecond)
+		}
+		assert.Equal(t, []int{1}, got, "Timeout values")
+		require.Len(t, errs, 1, "Timeout errors")
+		assert.ErrorIs(t, errs[0], context.DeadlineExceeded, "Timeout error")
+	}
+}
+
+// A deadline that expires before the source's close is observed must be
+// reported: a clean end wins only while the deadline has not fired. The
+// consumer outspends d on the only element, so the close and the expired
+// timer reach the select together.
+func TestTimeoutNoticesTheDeadlineBeforeTheClose(t *testing.T) {
+	const d = 10 * time.Millisecond
+	for range 25 {
+		var got []int
+		var errs []error
+		for v, err := range Timeout(t.Context(), streams.Of(7), d) {
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			got = append(got, v)
+			time.Sleep(25 * time.Millisecond)
+		}
+		assert.Equal(t, []int{7}, got, "Timeout values")
+		require.Len(t, errs, 1, "Timeout errors")
+		assert.ErrorIs(t, errs[0], context.DeadlineExceeded, "Timeout error")
+	}
+}
+
 // wait must refuse a done context even when its timer has already fired: both
 // are live select cases and the tie is broken at random, so without a recheck
 // Throttle and RateLimit could emit one element after cancellation. The

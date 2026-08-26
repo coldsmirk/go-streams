@@ -21,11 +21,12 @@ import (
 //
 // On expiry the sequence yields one final pair of the zero value of T and
 // context.DeadlineExceeded, and ends. If ctx is done, the final pair carries
-// ctx.Err() instead: cancellation wins every tie — with a ready element, with
-// the deadline, and with exhaustion alike — so a sequence that ends under a
-// done context always reports it. A sequence that finishes with ctx live and
-// the deadline unmet yields no error at all; the error slot is non-nil at most
-// once, in the last pair. Timeout panics if d is not positive.
+// ctx.Err() instead. Ties are broken by severity rather than by the draw:
+// cancellation beats the deadline, a ready element and exhaustion; the
+// deadline beats a ready element and exhaustion; a value, or a clean end, is
+// delivered only when neither has been observed. A sequence that finishes with
+// ctx live and the deadline unmet yields no error at all; the error slot is
+// non-nil at most once, in the last pair. Timeout panics if d is not positive.
 func Timeout[T any](ctx context.Context, s streams.Stream[T], d time.Duration) iter.Seq2[T, error] {
 	if d <= 0 {
 		panic("temporal: Timeout called with d <= 0")
@@ -36,6 +37,20 @@ func Timeout[T any](ctx context.Context, s streams.Stream[T], d time.Duration) i
 
 		timer := time.NewTimer(d)
 		defer timer.Stop()
+
+		// expired reports whether the deadline has fired, consuming the tick;
+		// every path that observes it true returns at once, so the tick is
+		// never needed twice. It gives the deadline the same priority over an
+		// element and over exhaustion that a done context has over everything:
+		// ties are broken by severity, never by the draw of the select.
+		expired := func() bool {
+			select {
+			case <-timer.C:
+				return true
+			default:
+				return false
+			}
+		}
 
 		var zero T
 		for {
@@ -52,16 +67,23 @@ func Timeout[T any](ctx context.Context, s streams.Stream[T], d time.Duration) i
 				return
 			case v, ok := <-elems:
 				if !ok {
-					// Exhaustion under a done context still reports it: the
-					// select could as easily have observed ctx first, and the
-					// outcome must not depend on the draw.
+					// Exhaustion under a done context or a fired deadline
+					// still reports it: the select could as easily have
+					// observed those first, and the outcome must not depend
+					// on the draw.
 					if canceled(ctx) {
 						yield(zero, ctx.Err())
+					} else if expired() {
+						yield(zero, context.DeadlineExceeded)
 					}
 					return
 				}
 				if canceled(ctx) {
 					yield(zero, ctx.Err())
+					return
+				}
+				if expired() {
+					yield(zero, context.DeadlineExceeded)
 					return
 				}
 				if !yield(v, nil) {
