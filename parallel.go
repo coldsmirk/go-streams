@@ -37,7 +37,10 @@ func Unordered() ParallelOption {
 }
 
 // ParallelMap is [Stream.Map] with fn applied concurrently. Results keep their
-// input order unless [Unordered] is given. fn must be safe for concurrent use.
+// input order unless [Unordered] is given. fn must be safe for concurrent use
+// and must not panic: it runs on a goroutine of its own, where no recover
+// around the iteration can reach a panic, so instead of unwinding to the
+// consumer as it would from [Stream.Map], it crashes the program.
 //
 // Concurrency is not free: each element costs a goroutine and a channel
 // handoff, which is on the order of a microsecond. Below roughly five
@@ -58,8 +61,9 @@ func (s Stream[T]) ParallelMap[R any](fn func(T) R, opts ...ParallelOption) Stre
 
 // ParallelFilter is [Stream.Filter] with pred evaluated concurrently. Elements
 // keep their input order unless [Unordered] is given. pred must be safe for
-// concurrent use. The notes on [Stream.ParallelMap] about when concurrency
-// pays and about the goroutine that reads s apply here too.
+// concurrent use and must not panic. The notes on [Stream.ParallelMap] about
+// panics, about when concurrency pays and about the goroutine that reads s
+// apply here too.
 func (s Stream[T]) ParallelFilter(pred func(T) bool, opts ...ParallelOption) Stream[T] {
 	return parallelRun(s, func(v T) (T, bool) { return v, pred(v) }, newParallelConfig(opts))
 }
@@ -182,8 +186,9 @@ func parallelUnordered[T, R any](s Stream[T], work func(T) (R, bool), concurrenc
 }
 
 // ParallelForEach calls fn for each element concurrently and returns once every
-// call has completed. fn must be safe for concurrent use. [Unordered] has no
-// effect here, since there are no results to order.
+// call has completed. fn must be safe for concurrent use and must not panic,
+// as on [Stream.ParallelMap]. [Unordered] has no effect here, since there are
+// no results to order.
 func (s Stream[T]) ParallelForEach(fn func(T), opts ...ParallelOption) {
 	cfg := newParallelConfig(opts)
 	var wg sync.WaitGroup
