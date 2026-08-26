@@ -244,15 +244,7 @@ func RateLimit[T any](ctx context.Context, s streams.Stream[T], n int, per time.
 		// A virtual scheduling clock: emission is the interval one token buys,
 		// tat the time the bucket next runs dry, and burst how far ahead of the
 		// present tat may run while n tokens remain.
-		emission := per / time.Duration(n)
-		if emission == 0 {
-			// An n above per's nanosecond count truncates the interval to
-			// zero, which would stop the virtual clock and lift the limit
-			// entirely. One nanosecond keeps the clock moving; a rate that
-			// high cannot be reached in practice, so the shortfall against
-			// the requested rate is not observable.
-			emission = 1
-		}
+		emission := emissionInterval(n, per)
 		burst := time.Duration(n-1) * emission
 		elems, stop := pump(s)
 		defer stop()
@@ -275,4 +267,19 @@ func RateLimit[T any](ctx context.Context, s streams.Stream[T], n int, per time.
 			}
 		}
 	}
+}
+
+// emissionInterval is the virtual-clock interval one [RateLimit] token buys:
+// per split n ways. An n above per's nanosecond count would truncate the
+// interval to zero, stopping the virtual clock and lifting the limit entirely;
+// one nanosecond keeps the clock moving, and a rate that high cannot be
+// reached in practice, so the shortfall against the requested rate is not
+// observable — which is also why the clamp is asserted on this function
+// directly rather than through timing.
+func emissionInterval(n int, per time.Duration) time.Duration {
+	emission := per / time.Duration(n)
+	if emission == 0 {
+		emission = 1
+	}
+	return emission
 }

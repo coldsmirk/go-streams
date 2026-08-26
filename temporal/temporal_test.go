@@ -197,6 +197,15 @@ func TestRateLimitSurvivesASubNanosecondEmissionInterval(t *testing.T) {
 	assert.LessOrEqualf(t, elapsed, time.Second, "RateLimit stalled for %v on a truncated emission interval", elapsed)
 }
 
+// The clamp is only observable through the derived interval — nanosecond
+// pacing cannot be told apart from no pacing by timing — so the derivation is
+// asserted directly, which is what catches the clamp being dropped.
+func TestEmissionIntervalClampsToANanosecond(t *testing.T) {
+	assert.Equal(t, time.Nanosecond, emissionInterval(100, 50*time.Nanosecond), "n above per's nanosecond count")
+	assert.Equal(t, 50*time.Millisecond, emissionInterval(2, 100*time.Millisecond), "even division")
+	assert.Equal(t, 33333333*time.Nanosecond, emissionInterval(3, 100*time.Millisecond), "uneven division rounds down")
+}
+
 func TestDebounceCoalescesABurst(t *testing.T) {
 	// The source is exhausted long before the quiet period elapses, so the
 	// burst collapses to its last element.
