@@ -156,9 +156,9 @@ func Sample[T any](ctx context.Context, s streams.Stream[T], interval time.Durat
 // arrivals. The elements inside the shift are buffered, so at any moment Delay
 // holds whatever s produced in the last d.
 //
-// The Stream ends d after s is exhausted, once the last held element has been
-// emitted, and as soon as ctx is done, discarding the elements still held.
-// Delay panics if d is not positive.
+// The Stream ends d after s is exhausted — the end is held back like the
+// elements before it — and as soon as ctx is done, discarding whatever is
+// still held. Delay panics if d is not positive.
 func Delay[T any](ctx context.Context, s streams.Stream[T], d time.Duration) streams.Stream[T] {
 	if d <= 0 {
 		panic("temporal: Delay called with d <= 0")
@@ -173,21 +173,25 @@ func Delay[T any](ctx context.Context, s streams.Stream[T], d time.Duration) str
 
 		// held is the queue of elements inside the shift, in arrival order, so
 		// the element due next is always held[0] and the timer only ever needs
-		// to track the head. The timer is armed exactly while held is not
-		// empty: armed when the queue starts, re-armed after each emission.
+		// to track the head. The timer is armed exactly while something is
+		// due: the head of the queue while it has one, then the shifted end
+		// once the source closes.
 		var held []stamped[T]
+		var closeAt time.Time
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case v, ok := <-elems:
 				if !ok {
-					if len(held) == 0 {
-						return
-					}
-					// Disarm this case and drain held on the timer alone: the
-					// end of the Stream is shifted by d like everything else.
+					// The close is shifted by d like everything else: disarm
+					// this case and let the timer deliver the end, after the
+					// queue drains if it holds anything.
 					elems = nil
+					closeAt = time.Now()
+					if len(held) == 0 {
+						timer.Reset(d)
+					}
 					continue
 				}
 				held = append(held, stamped[T]{at: time.Now(), value: v})
@@ -196,6 +200,10 @@ func Delay[T any](ctx context.Context, s streams.Stream[T], d time.Duration) str
 				}
 			case <-timer.C:
 				if canceled(ctx) {
+					return
+				}
+				if len(held) == 0 {
+					// Nothing queued, so this firing is the shifted close.
 					return
 				}
 				v := held[0].value
@@ -209,7 +217,7 @@ func Delay[T any](ctx context.Context, s streams.Stream[T], d time.Duration) str
 					// non-positive reset, which fires the timer at once.
 					timer.Reset(time.Until(held[0].at.Add(d)))
 				} else if elems == nil {
-					return
+					timer.Reset(time.Until(closeAt.Add(d)))
 				}
 			}
 		}

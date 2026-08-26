@@ -128,6 +128,31 @@ func TestDelayPreservesSpacing(t *testing.T) {
 		"emissions %v apart, want about the arrival gap of %v: the waits must overlap", spacing, gap)
 }
 
+// The end of the Stream is shifted like the elements: a source that emits and
+// then lingers before finishing keeps the delayed Stream open for d past the
+// moment it finished, not merely d past its last element.
+func TestDelayShiftsTheEndOfTheStream(t *testing.T) {
+	const (
+		d      = 200 * time.Millisecond
+		linger = 400 * time.Millisecond
+	)
+	src := streams.Stream[int](func(yield func(int) bool) {
+		if !yield(1) {
+			return
+		}
+		time.Sleep(linger)
+	})
+
+	start := time.Now()
+	got := Delay(t.Context(), src, d).Collect()
+	elapsed := time.Since(start)
+
+	assert.Equal(t, []int{1}, got, "Delay")
+	atLeast := linger + d - 10*time.Millisecond
+	assert.GreaterOrEqualf(t, elapsed, atLeast,
+		"Delay ended after %v, want at least %v: the end must be shifted too", elapsed, atLeast)
+}
+
 func TestRateLimitPacesBeyondTheInitialBurst(t *testing.T) {
 	const (
 		n        = 2
