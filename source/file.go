@@ -6,9 +6,12 @@ import (
 	"os"
 )
 
-// File opens the file at path, hands it to parse, and yields what parse yields,
-// closing the file when the iteration ends however it ends. A file that cannot
-// be opened yields exactly one pair, of the zero value and the error.
+// File opens the file at path, hands it to parse, and yields what parse yields
+// up to and including the first non-nil error, closing the file when the
+// iteration ends however it ends. Ending at the first error is enforced here,
+// not merely expected of parse, so the package contract holds even for a parse
+// function that would keep yielding past one. A file that cannot be opened
+// yields exactly one pair, of the zero value and the error.
 //
 // It is the general form of [LinesFile], [CSVFile], [TSVFile] and
 // [RecordsFile], and the way to read a file in any other format:
@@ -26,7 +29,7 @@ func File[T any](path string, parse func(io.Reader) iter.Seq2[T, error]) iter.Se
 		}
 		defer func() { _ = f.Close() }()
 		for v, err := range parse(f) {
-			if !yield(v, err) {
+			if !yield(v, err) || err != nil {
 				return
 			}
 		}

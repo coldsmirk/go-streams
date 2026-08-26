@@ -98,6 +98,35 @@ func TestLinesFileMissing(t *testing.T) {
 	assert.ErrorIs(t, last, os.ErrNotExist, "LinesFile error")
 }
 
+// File cuts the sequence at the first error itself rather than trusting parse
+// to: the package contract — a sequence ends at its first error — must hold
+// even for a parse function that keeps yielding past one. The test keeps
+// ranging after the error, because a consumer that stops there could not tell
+// the difference.
+func TestFileEndsAtTheFirstParseError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "data.txt")
+	require.NoError(t, os.WriteFile(path, []byte("irrelevant"), 0o600))
+
+	pastError := func(io.Reader) iter.Seq2[string, error] {
+		return func(yield func(string, error) bool) {
+			_ = yield("before", nil) && yield("", errRead) && yield("after", nil)
+		}
+	}
+
+	var got []string
+	var errs []error
+	for v, err := range File(path, pastError) {
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		got = append(got, v)
+	}
+	assert.Equal(t, []string{"before"}, got, "File values, want none past the error")
+	require.Len(t, errs, 1, "File errors")
+	assert.ErrorIs(t, errs[0], errRead, "File error")
+}
+
 func TestBytes(t *testing.T) {
 	assert.Equal(t, []byte("abc"), Bytes([]byte("abc")).Collect(), "Bytes")
 	assert.Zero(t, Bytes(nil).Count(), "Bytes(nil) yielded bytes, want 0")
