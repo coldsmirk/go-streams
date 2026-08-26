@@ -101,12 +101,15 @@ func TestDelayPreservesSpacing(t *testing.T) {
 	// The second element arrives gap after the first and must be emitted about
 	// gap after it too. A serial wait would stretch the spacing to d, and
 	// holding both elements to emit together would collapse it to nothing, so
-	// the bounds separate the shift from both failure shapes.
+	// the bounds separate the shift from both failure shapes. The channel is
+	// unbuffered so each send synchronises with the operator's receive: the
+	// sleep cannot start before the first element is taken, and a slow start
+	// cannot leave both elements buffered to arrive with no gap at all.
 	const (
 		gap = 250 * time.Millisecond
 		d   = 500 * time.Millisecond
 	)
-	ch := make(chan int, 2)
+	ch := make(chan int)
 	go func() {
 		ch <- 1
 		time.Sleep(gap)
@@ -179,6 +182,19 @@ func TestRateLimitEmitsTheInitialBurstImmediately(t *testing.T) {
 	want := []int{1, 2, 3}
 	assert.Equal(t, want, got, "RateLimit")
 	assert.LessOrEqualf(t, elapsed, time.Second, "RateLimit held the initial burst for %v", elapsed)
+}
+
+// An n above per's nanosecond count would truncate the emission interval to
+// zero and stop the virtual clock; the clamp to one nanosecond keeps the
+// limiter live. A rate that high is unreachable, so the elements pass at once
+// — the test pins that they pass at all.
+func TestRateLimitSurvivesASubNanosecondEmissionInterval(t *testing.T) {
+	start := time.Now()
+	got := RateLimit(t.Context(), streams.Range(0, 4), 100, 50*time.Nanosecond).Collect()
+	elapsed := time.Since(start)
+
+	assert.Equal(t, []int{0, 1, 2, 3}, got, "RateLimit")
+	assert.LessOrEqualf(t, elapsed, time.Second, "RateLimit stalled for %v on a truncated emission interval", elapsed)
 }
 
 func TestDebounceCoalescesABurst(t *testing.T) {
@@ -914,12 +930,14 @@ func TestSpanReleasesExpiredElements(t *testing.T) {
 	assert.Nil(t, window, "window of a fully expired batch")
 }
 
-// Timers must be released even for a source that never yields again. The reader
-// goroutine is a weaker guarantee and is documented as such in doc.go: a source
-// that stays quiet keeps it parked, and Go offers no way to reclaim it. This
-// test pins the part that is guaranteed, so a regression in timer handling is
-// caught without asserting a promise the package does not make.
-func TestOperatorsReleaseTheirTimersWithAQuietSource(t *testing.T) {
+// A stopped operator leaves nothing behind but its documented parked reader:
+// one goroutine per iteration, stuck inside the quiet source, is expected —
+// doc.go explains why it cannot be reclaimed — and anything beyond that is an
+// operator goroutine that leaked. Timer hygiene is outside what a goroutine
+// count can see, because a runtime timer has no goroutine of its own and a
+// missing Stop would not move the count; the deferred Stops are a code
+// convention, not a promise this test could pin.
+func TestStoppedOperatorsLeakOnlyTheParkedReader(t *testing.T) {
 	base := countGoroutines()
 	for range 30 {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -929,7 +947,7 @@ func TestOperatorsReleaseTheirTimersWithAQuietSource(t *testing.T) {
 		cancel()
 	}
 	// One parked reader per iteration is expected and documented; anything
-	// beyond that means a timer goroutine or an operator goroutine also leaked.
+	// beyond that means an operator goroutine leaked.
 	limit := base + 30 + 5
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
@@ -938,7 +956,7 @@ func TestOperatorsReleaseTheirTimersWithAQuietSource(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	assert.Failf(t, "timers or operator goroutines leaked",
+	assert.Failf(t, "operator goroutines leaked",
 		"goroutines = %d, want at most %d (30 documented parked readers plus slack)",
 		countGoroutines(), limit)
 }
