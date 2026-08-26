@@ -180,17 +180,28 @@ type stamped[T any] struct {
 // span drops the elements of held that are older than size and returns what is
 // left along with their values, or a nil window if nothing is left. The
 // elements are in arrival order, so the expired ones are a prefix.
+//
+// The expired elements must also become unreachable, not merely fall outside
+// the slice: a long-lived Stream keeps its held slice for as long as it runs,
+// so anything the backing array still references is anything the GC cannot
+// take. Compacting alone leaves the expired tail in place, and a batch that
+// expires in full would otherwise sit in the array until the next burst
+// happens to overwrite it.
 func span[T any](held []stamped[T], size time.Duration) (kept []stamped[T], window []T) {
 	cutoff := time.Now().Add(-size)
 	expired := 0
 	for expired < len(held) && !held[expired].at.After(cutoff) {
 		expired++
 	}
-	held = append(held[:0], held[expired:]...)
-	if len(held) == 0 {
-		return held, nil
+	if expired == len(held) {
+		// Nothing survived: drop the slice, capacity and all, rather than
+		// truncate it, so an idle stretch holds no memory of the last burst.
+		return nil, nil
 	}
-	window = make([]T, len(held))
+	n := copy(held, held[expired:])
+	clear(held[n:]) // the vacated tail still references expired elements
+	held = held[:n]
+	window = make([]T, n)
 	for i, e := range held {
 		window[i] = e.value
 	}

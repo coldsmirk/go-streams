@@ -785,6 +785,27 @@ func TestTimeoutReportsCancellationWithoutEmittingElements(t *testing.T) {
 	}
 }
 
+// span must leave the expired elements unreachable, not merely outside the
+// returned slice: Sliding keeps its held slice for as long as the Stream runs,
+// so whatever the backing array still references is whatever the GC cannot
+// take. The test inspects the array directly, which is exactly the surface a
+// consumer never sees.
+func TestSpanReleasesExpiredElements(t *testing.T) {
+	old := time.Now().Add(-time.Minute)
+	a, b, c := new(int), new(int), new(int)
+	held := []stamped[*int]{{at: old, value: a}, {at: old, value: b}, {at: time.Now(), value: c}}
+
+	kept, window := span(held, time.Second)
+	require.Len(t, kept, 1, "span kept")
+	assert.Equal(t, []*int{c}, window, "span window")
+	assert.Nil(t, held[1].value, "a vacated slot still references its element")
+	assert.Nil(t, held[2].value, "a vacated slot still references its element")
+
+	kept, window = span(kept, time.Nanosecond)
+	assert.Nil(t, kept, "a batch that expired in full must drop its backing array")
+	assert.Nil(t, window, "window of a fully expired batch")
+}
+
 // Timers must be released even for a source that never yields again. The reader
 // goroutine is a weaker guarantee and is documented as such in doc.go: a source
 // that stays quiet keeps it parked, and Go offers no way to reclaim it. This
