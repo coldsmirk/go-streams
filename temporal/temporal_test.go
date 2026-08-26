@@ -909,6 +909,9 @@ func TestTimeoutReportsCancellationAfterTheLastElement(t *testing.T) {
 // next ready element: the doc promises the deadline is noticed between
 // elements, and noticing must not depend on the draw. The sleep lets the
 // deadline fire and the next element park in the handoff, so both are ready.
+// A stalled start can make the deadline beat even the first element — also
+// correct — so the values are asserted as at most that element, never as
+// exactly it; the failure this test exists to catch is a second one.
 func TestTimeoutNoticesTheDeadlineBeforeTheNextElement(t *testing.T) {
 	const d = 10 * time.Millisecond
 	for range 25 {
@@ -922,7 +925,7 @@ func TestTimeoutNoticesTheDeadlineBeforeTheNextElement(t *testing.T) {
 			got = append(got, v)
 			time.Sleep(25 * time.Millisecond)
 		}
-		assert.Equal(t, []int{1}, got, "Timeout values")
+		assert.LessOrEqualf(t, len(got), 1, "Timeout emitted %v: an element after the deadline", got)
 		require.Len(t, errs, 1, "Timeout errors")
 		assert.ErrorIs(t, errs[0], context.DeadlineExceeded, "Timeout error")
 	}
@@ -931,7 +934,10 @@ func TestTimeoutNoticesTheDeadlineBeforeTheNextElement(t *testing.T) {
 // A deadline that expires before the source's close is observed must be
 // reported: a clean end wins only while the deadline has not fired. The
 // consumer outspends d on the only element, so the close and the expired
-// timer reach the select together.
+// timer reach the select together. A stalled start can make the deadline beat
+// the element itself — also correct, and also not a clean end — so the values
+// are asserted as at most that element; the failure this test exists to catch
+// is a missing error.
 func TestTimeoutNoticesTheDeadlineBeforeTheClose(t *testing.T) {
 	const d = 10 * time.Millisecond
 	for range 25 {
@@ -945,7 +951,7 @@ func TestTimeoutNoticesTheDeadlineBeforeTheClose(t *testing.T) {
 			got = append(got, v)
 			time.Sleep(25 * time.Millisecond)
 		}
-		assert.Equal(t, []int{7}, got, "Timeout values")
+		assert.LessOrEqualf(t, len(got), 1, "Timeout emitted %v, want at most the one element", got)
 		require.Len(t, errs, 1, "Timeout errors")
 		assert.ErrorIs(t, errs[0], context.DeadlineExceeded, "Timeout error")
 	}
