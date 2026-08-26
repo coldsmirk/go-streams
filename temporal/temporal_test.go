@@ -736,12 +736,14 @@ func burst() streams.Stream[int] {
 
 // Once the context is done nothing further is emitted — the promise doc.go
 // makes for every operator, end-of-source flushes included. It needs its own
-// test because a done context and a ready element are both live select cases,
-// where the winner is random: each operator is driven many times so a
-// regression cannot hide behind a lucky draw. Timeout, the documented
-// exception, has the test after this one.
+// test because a done context and a ready element or timer are both live
+// select cases, where the winner is random: each operator is driven many times
+// so a regression cannot hide behind a lucky draw. The nanosecond unit makes
+// the timers part of the tie — a longer one would never be ready before the
+// operator returns, leaving the timer branches to fire only in production.
+// Timeout, the documented exception, has the test after this one.
 func TestOperatorsEmitNothingOnceCancelled(t *testing.T) {
-	const unit = 10 * time.Millisecond
+	const unit = time.Nanosecond
 	count := map[string]func(ctx context.Context) int{
 		"Throttle":  func(ctx context.Context) int { return Throttle(ctx, burst(), unit).Count() },
 		"Debounce":  func(ctx context.Context) int { return Debounce(ctx, burst(), unit).Count() },
@@ -765,14 +767,16 @@ func TestOperatorsEmitNothingOnceCancelled(t *testing.T) {
 }
 
 // Timeout is the exception doc.go names: cancellation still emits, but only
-// the one final pair carrying ctx.Err(), never an element.
+// the one final pair carrying ctx.Err(), never an element. The nanosecond
+// deadline puts the expired timer into the tie as well, and cancellation must
+// beat it too.
 func TestTimeoutReportsCancellationWithoutEmittingElements(t *testing.T) {
 	for range 50 {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		values := 0
 		var errs []error
-		for _, err := range Timeout(ctx, burst(), time.Second) {
+		for _, err := range Timeout(ctx, burst(), time.Nanosecond) {
 			if err != nil {
 				errs = append(errs, err)
 			} else {
@@ -782,6 +786,85 @@ func TestTimeoutReportsCancellationWithoutEmittingElements(t *testing.T) {
 		assert.Zero(t, values, "Timeout emitted elements after cancellation")
 		require.Len(t, errs, 1, "Timeout errors")
 		assert.ErrorIs(t, errs[0], context.Canceled, "Timeout error")
+	}
+}
+
+// A done context still reports even when the source is already exhausted:
+// whichever the select observes first — the done context or the closed source
+// — the final pair carries ctx.Err(), so the outcome does not depend on the
+// draw.
+func TestTimeoutReportsCancellationOnAnExhaustedSource(t *testing.T) {
+	for range 50 {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		var errs []error
+		for _, err := range Timeout(ctx, streams.Empty[int](), time.Second) {
+			errs = append(errs, err)
+		}
+		require.Len(t, errs, 1, "Timeout pairs")
+		assert.ErrorIs(t, errs[0], context.Canceled, "Timeout error")
+	}
+}
+
+// Cancelling with elements still in flight races the done context against the
+// next ready element, and both draws must suppress the element and report
+// ctx.Err(). The sleep parks the source's next element in the handoff, so the
+// tie is real.
+func TestTimeoutReportsCancellationBetweenElements(t *testing.T) {
+	for range 50 {
+		ctx, cancel := context.WithCancel(context.Background())
+		var got []int
+		var errs []error
+		for v, err := range Timeout(ctx, burst(), time.Second) {
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			got = append(got, v)
+			cancel()
+			time.Sleep(time.Millisecond)
+		}
+		cancel() // a second call is a no-op; vet wants it called on every path
+		assert.Equal(t, []int{1}, got, "Timeout values")
+		require.Len(t, errs, 1, "Timeout errors")
+		assert.ErrorIs(t, errs[0], context.Canceled, "Timeout error")
+	}
+}
+
+// Cancelling after the last element races the done context against the
+// source's close, and both draws must report ctx.Err(). The sleep gives the
+// source time to finish, so the close is ready and the tie is real.
+func TestTimeoutReportsCancellationAfterTheLastElement(t *testing.T) {
+	for range 50 {
+		ctx, cancel := context.WithCancel(context.Background())
+		var got []int
+		var errs []error
+		for v, err := range Timeout(ctx, streams.Of(7), time.Second) {
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			got = append(got, v)
+			time.Sleep(time.Millisecond)
+			cancel()
+		}
+		cancel() // a second call is a no-op; vet wants it called on every path
+		assert.Equal(t, []int{7}, got, "Timeout values")
+		require.Len(t, errs, 1, "Timeout errors")
+		assert.ErrorIs(t, errs[0], context.Canceled, "Timeout error")
+	}
+}
+
+// wait must refuse a done context even when its timer has already fired: both
+// are live select cases and the tie is broken at random, so without a recheck
+// Throttle and RateLimit could emit one element after cancellation. The
+// nanosecond timer has always expired by the time the select runs, which makes
+// every pass a tie.
+func TestWaitRefusesADoneContextWithAnExpiredTimer(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	for range 100 {
+		assert.False(t, wait(ctx, time.Nanosecond), "wait with a done context")
 	}
 }
 

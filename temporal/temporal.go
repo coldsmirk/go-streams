@@ -20,10 +20,12 @@ import (
 // own loop body overruns it by however long it blocks there.
 //
 // On expiry the sequence yields one final pair of the zero value of T and
-// context.DeadlineExceeded, and ends. If ctx is done first, that pair carries
-// ctx.Err() instead. A sequence that finishes in time yields no error at all,
-// so the error slot is non-nil at most once, in the last pair. Timeout panics
-// if d is not positive.
+// context.DeadlineExceeded, and ends. If ctx is done, the final pair carries
+// ctx.Err() instead: cancellation wins every tie — with a ready element, with
+// the deadline, and with exhaustion alike — so a sequence that ends under a
+// done context always reports it. A sequence that finishes with ctx live and
+// the deadline unmet yields no error at all; the error slot is non-nil at most
+// once, in the last pair. Timeout panics if d is not positive.
 func Timeout[T any](ctx context.Context, s streams.Stream[T], d time.Duration) iter.Seq2[T, error] {
 	if d <= 0 {
 		panic("temporal: Timeout called with d <= 0")
@@ -42,10 +44,20 @@ func Timeout[T any](ctx context.Context, s streams.Stream[T], d time.Duration) i
 				yield(zero, ctx.Err())
 				return
 			case <-timer.C:
+				if canceled(ctx) {
+					yield(zero, ctx.Err())
+					return
+				}
 				yield(zero, context.DeadlineExceeded)
 				return
 			case v, ok := <-elems:
 				if !ok {
+					// Exhaustion under a done context still reports it: the
+					// select could as easily have observed ctx first, and the
+					// outcome must not depend on the draw.
+					if canceled(ctx) {
+						yield(zero, ctx.Err())
+					}
 					return
 				}
 				if canceled(ctx) {
@@ -111,8 +123,8 @@ func Stamp[T any](s streams.Stream[T]) streams.Stream2[time.Time, T] {
 // at random: without the recheck an operator could emit after cancellation.
 // The recheck is what turns the package promise — done means nothing further
 // is emitted — from a probabilistic outcome into a deterministic one.
-// (Throttle, Delay and RateLimit get the same recheck through wait, which
-// every one of their emissions passes through.)
+// (Throttle and RateLimit get the same recheck through wait, which every one
+// of their emissions passes through.)
 func canceled(ctx context.Context) bool { return ctx.Err() != nil }
 
 // recv waits for the next element of elems or for ctx to be done, whichever
@@ -172,6 +184,8 @@ func wait(ctx context.Context, d time.Duration) bool {
 	case <-ctx.Done():
 		return false
 	case <-timer.C:
-		return true
+		// An expired timer and a done context are both live cases and the tie
+		// is broken at random; rechecking keeps cancellation the winner.
+		return ctx.Err() == nil
 	}
 }
