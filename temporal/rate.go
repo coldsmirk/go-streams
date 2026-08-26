@@ -237,6 +237,14 @@ func RateLimit[T any](ctx context.Context, s streams.Stream[T], n int, per time.
 		// tat the time the bucket next runs dry, and burst how far ahead of the
 		// present tat may run while n tokens remain.
 		emission := per / time.Duration(n)
+		if emission == 0 {
+			// An n above per's nanosecond count truncates the interval to
+			// zero, which would stop the virtual clock and lift the limit
+			// entirely. One nanosecond keeps the clock moving; a rate that
+			// high cannot be reached in practice, so the shortfall against
+			// the requested rate is not observable.
+			emission = 1
+		}
 		burst := time.Duration(n-1) * emission
 		elems, stop := pump(s)
 		defer stop()
